@@ -10,6 +10,7 @@ const {
     updateProfile,
     updatePassword,
     forgotPassword,
+    
     resetPassword,
 } = require('../controllers/userController');
 const authMiddleware = require('../middleware/auth');
