@@ -4,43 +4,52 @@ const bcrypt = require('bcryptjs');
 
 require('dotenv').config();
 
-const { registerValidation, loginValidation } = require('../middleware/validation');
+const { registerValidation, loginValidation, profileUpdateValidation } = require('../middleware/validation');
 
 
-// Signup
+// Register User
 const register = async (req, res) => {
-    const { error } = registerValidation.validate(req.body);
-    if (error) return res.status(400).json({ message: error.details[0].message });
+
+    // Validate registration data, return error if invalid
+    const { error } = registerValidation(req.body);
+    if (error) return res.status(400).json({
+        message: error.details[0].message
+    });
 
     const { name, email, password } = req.body;
 
-    try {
-        // Check if user already exists
-        let user = await User.findOne({ email });
-        if (user) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
-
-        // Create new user
-        user = new User({ name, email, password });
-        await user.save();
-
-        // Generate token
-        // const token = generateToken(user._id);
-
-        res.status(201).json({
-            "message": "Registration Successfully",
-            "data": user,
+    // Check if user already exists
+    let userExists = await User.findOne({ email });
+    if (userExists) {
+        return res.status(400).json({
+            message: 'User already exists'
         });
+    }
+
+    // Create new user
+    const user = new User({ name, email, password });
+
+    try {
+        await user.save();
+        res.status(201).json({
+            message: "User registered successfully",
+            data: user,
+        });
+
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: err.message });
     }
 };
 
-// Signin
+// Login User
 const login = async (req, res) => {
-    const { error } = loginValidation.validate(req.body);
-    if (error) return res.status(400).json({ message: error.details[0].message });
+
+    // Validate login data, return error if invalid
+    const { error } = loginValidation(req.body);
+
+    if (error) return res.status(400).json({
+        message: error.details[0].message
+    });
 
     const { email, password } = req.body;
 
@@ -48,31 +57,42 @@ const login = async (req, res) => {
         // Check if user exists
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: 'Invalid email or password' });
+            return res.status(400).json({
+                message: 'Invalid email or password'
+            });
         }
 
         // Check password
         const isMatch = await user.matchPassword(password);
         if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid email or password' });
+            return res.status(400).json({
+                message: 'Invalid email or password'
+            });
         }
 
         // Generate token
         const token = generateToken(user._id);
+        res.cookie('jwt', token, { httpOnly: true, maxAge: 3600000 });
 
         res.status(200).json({
             "message": "User Login Successfully",
             "data": user,
             "token": token,
         });
+
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: `Server error ${err.message}` });
     }
 };
 
-// Signout (Clear JWT token)
+// Logout User
 const logout = (req, res) => {
-    res.status(200).json({ message: 'User signed out' });
+
+    res.cookie('jwt', '', { maxAge: 1 });
+
+    res.status(200).json({
+        message: 'Logout successful'
+    });
 };
 
-module.exports = { signup, signin, signout };
+module.exports = { register, login, logout };

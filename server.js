@@ -1,16 +1,20 @@
 const express = require('express');
-const connectDB = require('./src/database/connaction');
+const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
-require('dotenv').config();
+const connectDB = require('./src/database/connaction');
 const authRoutes = require('./src/routes/user');
 
+dotenv.config();
 const app = express();
-connectDB();
 
+// Middleware
 app.use(express.json());
 app.use(cookieParser());
 
-// Auth routes
+// MongoDB connection
+connectDB();
+
+// Routes
 app.use('/api/auth', authRoutes);
 
 const PORT = process.env.PORT || 5000;

@@ -1,15 +1,31 @@
 const Joi = require('joi');
 
-// Joi validation schema
-const registerValidation = Joi.object({
-    name: Joi.string().min(3).required(),
-    email: Joi.string().email().required(),
-    password: Joi.string().min(6).required(),
-});
+// Validate user registration input
+const registerValidation = (data) => {
+    const schema = Joi.object({
+        username: Joi.string().min(4).required(),
+        email: Joi.string().min(6).required().email(),
+        password: Joi.string().min(6).required(),
+    });
+    return schema.validate(data);
+};
 
-const loginValidation = Joi.object({
-    email: Joi.string().email().required(),
-    password: Joi.string().min(6).required(),
-});
+// Validate user login input
+const loginValidation = (data) => {
+    const schema = Joi.object({
+        email: Joi.string().min(6).required().email(),
+        password: Joi.string().min(6).required(),
+    });
+    return schema.validate(data);
+};
 
-module.exports = { registerValidation, loginValidation };
+// Validate profile update
+const profileUpdateValidation = (data) => {
+    const schema = Joi.object({
+        username: Joi.string().min(4),
+        email: Joi.string().min(6).email(),
+    });
+    return schema.validate(data);
+};
+
+module.exports = { registerValidation, loginValidation, profileUpdateValidation };
