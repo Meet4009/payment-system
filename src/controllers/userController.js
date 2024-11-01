@@ -6,6 +6,18 @@ require('dotenv').config();
 
 const { registerValidation, loginValidation, profileUpdateValidation } = require('../middleware/validation');
 
+// get API 
+
+const dataGet = async (req, res) => {
+    const users = await User.find();
+    console.log(users);
+
+    res.status(200).json({
+        user: users,
+        message: 'Logout successful'
+    });
+}
+
 
 // Register User
 const register = async (req, res) => {
@@ -99,4 +111,4 @@ const logout = (req, res) => {
     });
 };
 
-module.exports = { register, login, logout };
+module.exports = { register, login, logout, dataGet };

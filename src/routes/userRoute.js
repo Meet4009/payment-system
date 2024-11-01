@@ -7,6 +7,7 @@ const {
     register,
     login,
     logout,
+    dataGet,
     updateProfile,
     updatePassword,
     forgotPassword,
@@ -17,6 +18,7 @@ const authMiddleware = require('../middleware/auth');
 router.post('/register', register);
 router.post('/login', login);
 router.post('/logout', logout);
+router.get('/data', dataGet);
 // router.put('/update-profile', authMiddleware, updateProfile);
 // router.put('/update-password', authMiddleware, updatePassword);
 // router.post('/forgot-password', forgotPassword);
