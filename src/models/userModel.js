@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const crypto = require('crypto');
+const { number, date } = require("joi");
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -12,9 +13,36 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
+    mobile_no: {
+        type: Number,
+        required: true,
+        unique: true,
+    },
+    balance: {
+        type: Number,
+        default: 0,
+    },
+    currency_code: {
+        type: Number,
+        default: 356,
+    },
+    role: {
+        type: String,
+        default: "user",
+    },
+
+    loggedIn: {
+        type: Boolean,
+        default: false,
+    },
+
     password: {
         type: String,
         required: true,
+    },
+    create_At: {
+        type: Date,
+        default: Date.now(),
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
