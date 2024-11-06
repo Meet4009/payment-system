@@ -102,20 +102,22 @@ const login = async (req, res) => {
 // Logout User
 const logout = async (req, res) => {
     try {
-        const userId = req.user._id; // Assuming req.user contains authenticated user
+        const userId = req.user.id; // Assuming req.user contains authenticated user
 
         // Find the user and set loggedIn to false
         const user = await User.findById(userId);
         if (user) {
             user.loggedIn = false;
             await user.save();
+        } else {
+            message: "User not found"
         }
 
         // Clear JWT cookie
         res.clearCookie('jwt');
 
         res.status(200).json({
-            message: "User logged out successfully"
+            message: `${user.name} logged out successfully`
         });
     } catch (err) {
         res.status(500).json({
