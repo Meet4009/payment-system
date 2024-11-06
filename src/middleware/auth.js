@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-const protect = (req, res, next) => {
+const authMiddleware = (req, res, next) => {
   let token;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -28,4 +28,4 @@ const generateToken = (userId) => {
     expiresIn: '1h',
   });
 };
-module.exports = { protect, generateToken };
+module.exports = { authMiddleware, generateToken };

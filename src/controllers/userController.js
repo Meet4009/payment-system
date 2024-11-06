@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 
 require('dotenv').config();
 
+const { generateToken } = require('../middleware/auth');
 const { registerValidation, loginValidation, profileUpdateValidation } = require('../middleware/validation');
 
 
@@ -28,7 +29,6 @@ const register = async (req, res) => {
         });
     }
 
-
     // Create new user
     const user = new User({ name, email, mobile, password });
 
@@ -47,10 +47,8 @@ const register = async (req, res) => {
 };
 
 
-
 // Login User
 const login = async (req, res) => {
-
     // Validate login data, return error if invalid
     const { error } = loginValidation(req.body);
     if (error) {
@@ -80,6 +78,10 @@ const login = async (req, res) => {
             });
         }
 
+        // Set loggedIn to true
+        user.loggedIn = true;
+        await user.save();
+
         // Generate token
         const token = generateToken(user._id);
         res.cookie('jwt', token, { httpOnly: true, maxAge: 3600000 });
@@ -97,15 +99,29 @@ const login = async (req, res) => {
     }
 };
 
-
 // Logout User
-const logout = (req, res) => {
+const logout = async (req, res) => {
+    try {
+        const userId = req.user._id; // Assuming req.user contains authenticated user
 
-    res.cookie('jwt', '', { maxAge: 1 });
+        // Find the user and set loggedIn to false
+        const user = await User.findById(userId);
+        if (user) {
+            user.loggedIn = false;
+            await user.save();
+        }
 
-    res.status(200).json({
-        message: 'Logout successful'
-    });
+        // Clear JWT cookie
+        res.clearCookie('jwt');
+
+        res.status(200).json({
+            message: "User logged out successfully"
+        });
+    } catch (err) {
+        res.status(500).json({
+            message: `Server error ${err.message}`
+        });
+    }
 };
 
 module.exports = { register, login, logout };
