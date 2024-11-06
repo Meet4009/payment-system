@@ -16,18 +16,21 @@ const register = async (req, res) => {
         message: error.details[0].message
     });
 
-    const { name, email, password } = req.body;
+    const { name, email, mobile, password } = req.body;
 
     // Check if user already exists
-    let userExists = await User.findOne({ email });
+    const userExists = await User.findOne({
+        $or: [{ email }, { mobile }]
+    });
     if (userExists) {
         return res.status(400).json({
             message: 'User already exists'
         });
     }
 
+
     // Create new user
-    const user = new User({ name, email, password });
+    const user = new User({ name, email, mobile, password });
 
     try {
         await user.save();
@@ -43,24 +46,29 @@ const register = async (req, res) => {
     }
 };
 
+
+
 // Login User
 const login = async (req, res) => {
 
     // Validate login data, return error if invalid
     const { error } = loginValidation(req.body);
+    if (error) {
+        return res.status(400).json({
+            message: error.details[0].message
+        });
+    }
 
-    if (error) return res.status(400).json({
-        message: error.details[0].message
-    });
-
-    const { email, password } = req.body;
+    const { login, password } = req.body;
 
     try {
-        // Check if user exists
-        const user = await User.findOne({ email });
+        // Check if user exists by email or mobile number
+        const user = await User.findOne({
+            $or: [{ email: login }, { mobile: login }],
+        });
         if (!user) {
             return res.status(400).json({
-                message: 'Invalid email or password'
+                message: 'Invalid email/mobile or password'
             });
         }
 
@@ -68,7 +76,7 @@ const login = async (req, res) => {
         const isMatch = await user.matchPassword(password);
         if (!isMatch) {
             return res.status(400).json({
-                message: 'Invalid email or password'
+                message: 'Invalid email/mobile or password'
             });
         }
 
@@ -77,9 +85,9 @@ const login = async (req, res) => {
         res.cookie('jwt', token, { httpOnly: true, maxAge: 3600000 });
 
         res.status(200).json({
-            "message": "User Login Successfully",
-            "data": user,
-            "token": token,
+            message: "User Login Successfully",
+            data: user,
+            token: token,
         });
 
     } catch (err) {
@@ -88,6 +96,7 @@ const login = async (req, res) => {
         });
     }
 };
+
 
 // Logout User
 const logout = (req, res) => {

@@ -13,8 +13,8 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
-    mobile_no: {
-        type: Number,
+    mobile: {
+        type: String,
         required: true,
         unique: true,
     },

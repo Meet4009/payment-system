@@ -6,14 +6,15 @@ const registerValidation = (data) => {
         name: Joi.string().min(4).required(),
         email: Joi.string().min(6).required().email(),
         password: Joi.string().min(4).required(),
+        mobile: Joi.string().length(10).pattern(/^[0-9]+$/).required(), 
     });
     return schema.validate(data);
 };
 
-// Validate user login input
+// Login Validation Function
 const loginValidation = (data) => {
     const schema = Joi.object({
-        email: Joi.string().min(6).required().email(),
+        login: Joi.string().required(), // Can be email or mobile number
         password: Joi.string().min(4).required(),
     });
     return schema.validate(data);
