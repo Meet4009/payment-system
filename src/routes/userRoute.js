@@ -12,11 +12,11 @@ const {
     forgotPassword,
     resetPassword,
 } = require('../controllers/userController');
-const authMiddleware = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 router.post('/register', register);
 router.post('/login', login);
-router.get('/logout',authMiddleware, logout);
+router.get('/logout', authMiddleware, logout);
 // router.put('/update-profile', authMiddleware, updateProfile);
 // router.put('/update-password', authMiddleware, updatePassword);
 // router.post('/forgot-password', forgotPassword);
