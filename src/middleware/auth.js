@@ -6,12 +6,9 @@ const authMiddleware = (req, res, next) => {
 
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
-        console.log(token);
-        
-        
+
     } else if (req.cookies.jwt) {
         token = req.cookies.jwt; // Check in cookies if not in header
-        console.log("cookies", token);
 
     } else {
         return res.status(401).json({ message: 'No token, authorization denied' });
