@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
-const { generateToken } = require('../middleware/auth');
+const { generateToken, setCookie } = require('../middleware/auth');
 const { registerValidation, loginValidation, profileUpdateValidation } = require('../middleware/validation');
 const userProtect = require('../utils/userProtect');
 
@@ -48,7 +48,7 @@ const register = async (req, res) => {
     }
 };
 
-const login = async (req, res) => {
+const login = async (req, res,next) => {
     const { error } = loginValidation(req.body);
     if (error) return res.status(400).json({
         success: false,
@@ -70,7 +70,7 @@ const login = async (req, res) => {
         await user.save();
 
         const token = generateToken(user._id);
-        res.cookie('jwt', token, { httpOnly: true, maxAge: 3600000 });
+        setCookie(res,token);
 
         res.status(200).json({
             Success: true,
