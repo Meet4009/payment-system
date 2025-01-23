@@ -4,10 +4,19 @@ require('dotenv').config();
 const authMiddleware = (req, res, next) => {
     let token;
 
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        token = req.headers.authorization.split(' ')[1];
+    // get the token from header.authorization->Bearer Token
+    // if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    //     token = req.headers.authorization.split(' ')[1];
 
-    } else if (req.cookies.jwt) {
+    // } else if (req.cookies.jwt) {
+    //     token = req.cookies.jwt; // Check in cookies if not in header
+
+    // } else {
+    //     return res.status(401).json({ message: 'No token, authorization denied' });
+    // }
+
+    // get the token from cookie
+    if (req.cookies.jwt) {
         token = req.cookies.jwt; // Check in cookies if not in header
 
     } else {
@@ -15,8 +24,8 @@ const authMiddleware = (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; // Attach decoded token (user) to req
+        const decodeData = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decodeData; // Attach decoded token (user) to req
         next();
     } catch (err) {
         res.status(401).json({ message: 'Not authorized, token failed' });
