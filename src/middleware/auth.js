@@ -2,8 +2,9 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 // Add the following line to require cookie-parser
 const cookieParser = require('cookie-parser');
+const User = require('../models/userModel');
 
-const authMiddleware = (req, res, next) => {
+exports.authMiddleware = async (req, res, next) => {
     let token;
 
     // get the token from header.authorization->Bearer Token
@@ -26,27 +27,20 @@ const authMiddleware = (req, res, next) => {
     }
 
     try {
-        const decodeData = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decodeData; // Attach decoded token (user) to req
+        const decodeData =  jwt.verify(token, process.env.JWT_SECRET);
+        req.user = await User.findById(decodeData.id); // Attach decoded token (user) to req
         next();
     } catch (err) {
         res.status(401).json({ message: 'Not authorized, token failed' });
     }
 };
 
-// Generate JWT token
-const generateToken = (userId) => {
-    return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-        expiresIn: '1d',
-    });
-};
-
-const setCookie = (res, token) => {
-    const options = {
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day
-        httpOnly: true,
+// Authorize roles
+exports.authorizeRoles = (...roles) => {
+    return (req, res, next) => {
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({ message: 'Not authorized to access this route' });
+        }
+        next();
     };
-    res.cookie('jwt', token, options);
-    
-};
-module.exports = { authMiddleware, generateToken, setCookie };
+}

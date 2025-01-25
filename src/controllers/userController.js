@@ -3,13 +3,20 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
-const { generateToken, setCookie } = require('../middleware/auth');
+const { generateToken, setCookie } = require('../utils/JWT_token');
 const { registerValidation, loginValidation, profileUpdateValidation, updatePasswordValidation } = require('../middleware/validation');
 const userProtect = require('../utils/userProtect');
 
-const register = async (req, res) => {
 
-    const { name, email, mobile, password } = req.body;
+//////////////////////////////// USER SIDE ////////////////////////////////
+
+// ----------------------------------------------------------------
+// Register a new user
+// POST http://localhost:5000/api/auth/register
+// ----------------------------------------------------------------
+exports.register = async (req, res) => {
+
+    const { name, email, mobile, password, } = req.body;
 
     try {
         const { error } = registerValidation(req.body);
@@ -29,7 +36,7 @@ const register = async (req, res) => {
         }
 
         const hashedPassword = await userProtect.doHash(password);
-        const user = new User({ name, email, mobile, password: hashedPassword });
+        const user = new User({ name, email, mobile, password: hashedPassword,  });
 
         await user.save();
         user.password = undefined;
@@ -48,7 +55,12 @@ const register = async (req, res) => {
     }
 };
 
-const login = async (req, res, next) => {
+// ----------------------------------------------------------------
+// Login a user
+// POST http://localhost:5000/api/auth/login
+// ----------------------------------------------------------------
+
+exports.login = async (req, res, next) => {
     const { error } = loginValidation(req.body);
     if (error) return res.status(400).json({
         success: false,
@@ -86,7 +98,12 @@ const login = async (req, res, next) => {
     }
 };
 
-const logout = async (req, res) => {
+// ----------------------------------------------------------------
+// Logout a user
+// GET http://localhost:5000/api/auth/logout
+// ----------------------------------------------------------------
+
+exports.logout = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) {
@@ -113,7 +130,12 @@ const logout = async (req, res) => {
     }
 };
 
-const getProfile = async (req, res) => {
+// ----------------------------------------------------------------
+// Get user profile
+// GET http://localhost:5000/api/auth/profile
+// ----------------------------------------------------------------
+
+exports.getProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id
         );
@@ -137,8 +159,12 @@ const getProfile = async (req, res) => {
     }
 }
 
+// ----------------------------------------------------------------
+// Update user profile
+// PUT http://localhost:5000/api/auth/profile-update
+// ----------------------------------------------------------------
 
-const updateProfile = async (req, res) => {
+exports.updateProfile = async (req, res) => {
     const { error } = profileUpdateValidation(req.body);
     if (error) return res.status(400).json({
         success: false,
@@ -168,14 +194,19 @@ const updateProfile = async (req, res) => {
     }
 }
 
-const updatePassword = async (req, res) => {
+// ----------------------------------------------------------------
+// Update user password
+// PUT http://localhost:5000/api/auth/update-password
+// ----------------------------------------------------------------
+
+exports.updatePassword = async (req, res) => {
     const { password, newPassword, confrimPassword } = req.body;
     const { error } = updatePasswordValidation(req.body);
     if (error) return res.status(400).json({
         success: false,
         message: error.details[0].message
     });
-    
+
 
     try {
         const user = await User.findById(req.user.id).select('+password');
@@ -201,4 +232,137 @@ const updatePassword = async (req, res) => {
     }
 }
 
-module.exports = { register, login, logout, updateProfile, getProfile, updatePassword };
+// ----------------------------------------------------------------
+// Delete user
+// DELETE http://localhost:5000/api/auth/delete-user/:id
+
+// Note: This route is protected by the userProtect middleware. It requires a valid JWT token to access.
+
+exports.deleteProfile = async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.user.id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: "User deleted successfully"
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: `Server error ${err.message}`
+        });
+    }
+};
+
+//////////////////////////////// ADMIN SIDE ////////////////////////////////
+
+// ----------------------------------------------------------------
+// Get all users
+// GET http://localhost:5000/api/auth/users
+// ----------------------------------------------------------------
+
+exports.getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({ role: 'user' });
+        res.status(200).json({
+            success: true,
+            data: users
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: `Server error ${err.message}`
+        });
+    }
+};
+
+// ----------------------------------------------------------------
+// Get user by id
+// GET http://localhost:5000/api/auth/user/:id
+// ----------------------------------------------------------------
+
+
+exports.getUserById = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        res.status(200).json({
+            success: true,
+            data: user
+        });
+    }
+    catch (err) {
+        res.status(500).json({
+            success: false,
+            message: `Server error ${err.message}`
+        });
+    }
+}
+
+// ----------------------------------------------------------------
+// Delete user by id
+// DELETE http://localhost:5000/api/auth/delete-user/:id
+// ----------------------------------------------------------------
+
+exports.deleteUser = async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: "User deleted successfully"
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: `Server error ${err.message}`
+        });
+    }
+}
+
+// ----------------------------------------------------------------
+// Update user by id
+// PUT http://localhost:5000/api/auth/update-user/:id
+// ----------------------------------------------------------------
+
+exports.updateUser = async (req, res) => {
+    try {
+        const user = await User.findByIdAndUpdate(req
+            .params.id, req.body, { new: true, runValidators: true });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: "User updated successfully",
+            data: user
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: `Server error ${err.message}`
+        });
+    }
+
+}
+
+
