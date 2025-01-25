@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./src/database/connaction');
 const userRoutes = require('./src/routes/userRoute');
+const paymentRoutes = require('./src/routes/paymentRoutes');
 
 dotenv.config();
 const app = express();
@@ -17,6 +18,7 @@ connectDB();
 
 // Routes
 app.use('/api/auth', userRoutes);
+app.use('/api/payment', paymentRoutes);
 
 const PORT = process.env.PORT || 5000;
 
