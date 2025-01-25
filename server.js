@@ -21,5 +21,5 @@ app.use('/api/auth', userRoutes);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-    console.log(`server :  http://localhost:${process.env.PORT}`);
+    console.log(`server :  http://localhost:${PORT}`);
 });

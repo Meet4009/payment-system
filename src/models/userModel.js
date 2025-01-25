@@ -25,20 +25,21 @@ const userSchema = new mongoose.Schema({
     currency_code: {
         type: Number,
         default: 356,
+        enum: [356, 840],
     },
     role: {
         type: String,
         default: "user",
+        enum: ["user", "admin"],
     },
-
     loggedIn: {
         type: Boolean,
         default: false,
     },
-
     password: {
         type: String,
         required: true,
+        select: false
     },
     create_At: {
         type: Date,
