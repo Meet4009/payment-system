@@ -8,3 +8,4 @@ const { authMiddleware } = require('../middleware/auth');
 router.post('/deposite',authMiddleware, deposite);
 
 module.exports = router;
+    

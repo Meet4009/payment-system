@@ -36,7 +36,7 @@ exports.register = async (req, res) => {
         }
 
         const hashedPassword = await userProtect.doHash(password);
-        const user = new User({ name, email, mobile, password: hashedPassword,  });
+        const user = new User({ name, email, mobile, password: hashedPassword, });
 
         await user.save();
         user.password = undefined;
@@ -309,6 +309,44 @@ exports.getUserById = async (req, res) => {
     }
 }
 
+
+// ----------------------------------------------------------------
+// Update user by id
+// PUT http://localhost:5000/api/auth/update-user/:id
+// ----------------------------------------------------------------
+
+exports.updateUser = async (req, res) => {
+    const { error } = profileUpdateValidation(req.body);
+    if (error) return res.status(400).json({
+        success: false,
+        message: error.details[0].message
+    });
+
+    try {
+        const user = await User.findByIdAndUpdate(req.params.id, req.body, {
+            new: true, runValidators: true
+        });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: "User updated successfully",
+            data: user
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: `Server error ${err.message}`
+        });
+    }
+
+}
+
 // ----------------------------------------------------------------
 // Delete user by id
 // DELETE http://localhost:5000/api/auth/delete-user/:id
@@ -334,35 +372,4 @@ exports.deleteUser = async (req, res) => {
         });
     }
 }
-
-// ----------------------------------------------------------------
-// Update user by id
-// PUT http://localhost:5000/api/auth/update-user/:id
-// ----------------------------------------------------------------
-
-exports.updateUser = async (req, res) => {
-    try {
-        const user = await User.findByIdAndUpdate(req
-            .params.id, req.body, { new: true, runValidators: true });
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-        }
-        res.status(200).json({
-            success: true,
-            message: "User updated successfully",
-            data: user
-        });
-
-    } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server error ${err.message}`
-        });
-    }
-
-}
-
 

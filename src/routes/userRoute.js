@@ -14,7 +14,9 @@ const {
     forgotPassword,
     resetPassword,
     getAllUsers,
-    getUserById
+    getUserById,
+    updateUser,
+    deleteUser
 } = require('../controllers/userController');
 const { authMiddleware, authorizeRoles } = require('../middleware/auth');
 
@@ -30,5 +32,7 @@ router.get('/delete', authMiddleware, deleteProfile);
 
 router.get('/users', authMiddleware, authorizeRoles("admin"), getAllUsers);
 router.get('/user/:id', authMiddleware, authorizeRoles("admin"), getUserById);
+router.put('/user/:id', authMiddleware, authorizeRoles("admin"), updateUser);
+router.delete('/user/:id', authMiddleware, authorizeRoles("admin"), deleteUser);
 
 module.exports = router;
