@@ -1,9 +1,9 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
-const connectDB = require('./src/database/connaction');
-const userRoutes = require('./src/routes/userRoute');
-const paymentRoutes = require('./src/routes/paymentRoutes');
+const connectDB = require('./database/connaction');
+const userRoutes = require('./routes/userRoute');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 dotenv.config();
 const app = express();
