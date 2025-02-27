@@ -6,17 +6,18 @@ require('dotenv').config();
 const { generateToken, setCookie } = require('../utils/JWT_token');
 const { registerValidation, loginValidation, profileUpdateValidation, updatePasswordValidation } = require('../middleware/validation');
 const userProtect = require('../utils/userProtect');
+const services = require('../services/userServices');
 
 
 //////////////////////////////// USER SIDE ////////////////////////////////
 
 // ----------------------------------------------------------------
 // Register a new user
-// POST http://localhost:5000/api/auth/register
+// POST http://localhost:5656/api/v1/user/register
 // ----------------------------------------------------------------
 exports.register = async (req, res) => {
 
-    const { name, email, mobile, password, } = req.body;
+    const { name, email, phone, password, } = req.body;
 
     try {
         const { error } = registerValidation(req.body);
@@ -27,7 +28,7 @@ exports.register = async (req, res) => {
             });
         }
 
-        const userExists = await User.findOne({ $or: [{ email }, { mobile }] });
+        const userExists = await User.findOne({ $or: [{ email }, { phone }] });
         if (userExists) {
             return res.status(400).json({
                 success: false,
@@ -36,14 +37,14 @@ exports.register = async (req, res) => {
         }
 
         const hashedPassword = await userProtect.doHash(password);
-        const user = new User({ name, email, mobile, password: hashedPassword, });
+        const newUser = new User({ name, email, phone, password: hashedPassword, });
 
-        await user.save();
-        user.password = undefined;
+        const user = await newUser.save();
+        newUser.password = undefined;
 
         res.status(201).json({
             success: true,
-            message: "User registered successfully",
+            message: "User created successfully",
             data: user
         });
 
@@ -57,7 +58,7 @@ exports.register = async (req, res) => {
 
 // ----------------------------------------------------------------
 // Login a user
-// POST http://localhost:5000/api/auth/login
+// POST http://localhost:5656/api/v1/user/login
 // ----------------------------------------------------------------
 
 exports.login = async (req, res, next) => {
@@ -69,12 +70,12 @@ exports.login = async (req, res, next) => {
 
     const { login, password } = req.body;
     try {
-        const user = await User.findOne({ $or: [{ email: login }, { mobile: login }] }).select('+password');
+        const user = await User.findOne({ $or: [{ email: login }, { phone: login }] }).select('+password');
 
         if (!user || !(await userProtect.comparePassword(password, user.password))) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid email/mobile or password'
+                message: 'Invalid email/phone or password'
             });
         }
 
@@ -100,7 +101,7 @@ exports.login = async (req, res, next) => {
 
 // ----------------------------------------------------------------
 // Logout a user
-// GET http://localhost:5000/api/auth/logout
+// GET http://localhost:5656/api/v1/user/logout
 // ----------------------------------------------------------------
 
 exports.logout = async (req, res) => {
@@ -132,13 +133,12 @@ exports.logout = async (req, res) => {
 
 // ----------------------------------------------------------------
 // Get user profile
-// GET http://localhost:5000/api/auth/profile
+// GET http://localhost:5656/api/v1/user/profile
 // ----------------------------------------------------------------
 
 exports.getProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id
-        );
+        const user = await User.findById(req.user.id);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -161,7 +161,7 @@ exports.getProfile = async (req, res) => {
 
 // ----------------------------------------------------------------
 // Update user profile
-// PUT http://localhost:5000/api/auth/profile-update
+// PUT http://localhost:5656/api/v1/user/profile-update
 // ----------------------------------------------------------------
 
 exports.updateProfile = async (req, res) => {
@@ -196,7 +196,7 @@ exports.updateProfile = async (req, res) => {
 
 // ----------------------------------------------------------------
 // Update user password
-// PUT http://localhost:5000/api/auth/update-password
+// PUT http://localhost:5656/api/v1/user/update-password
 // ----------------------------------------------------------------
 
 exports.updatePassword = async (req, res) => {
@@ -234,7 +234,7 @@ exports.updatePassword = async (req, res) => {
 
 // ----------------------------------------------------------------
 // Delete user
-// DELETE http://localhost:5000/api/auth/delete-user/:id
+// DELETE http://localhost:5656/api/v1/user/delete-user/:id
 
 // Note: This route is protected by the userProtect middleware. It requires a valid JWT token to access.
 
@@ -263,7 +263,7 @@ exports.deleteProfile = async (req, res) => {
 
 // ----------------------------------------------------------------
 // Get all users
-// GET http://localhost:5000/api/auth/users
+// GET http://localhost:5656/api/v1/user/users
 // ----------------------------------------------------------------
 
 exports.getAllUsers = async (req, res) => {
@@ -283,7 +283,7 @@ exports.getAllUsers = async (req, res) => {
 
 // ----------------------------------------------------------------
 // Get user by id
-// GET http://localhost:5000/api/auth/user/:id
+// GET http://localhost:5656/api/v1/user/user/:id
 // ----------------------------------------------------------------
 
 
@@ -312,7 +312,7 @@ exports.getUserById = async (req, res) => {
 
 // ----------------------------------------------------------------
 // Update user by id
-// PUT http://localhost:5000/api/auth/update-user/:id
+// PUT http://localhost:5656/api/v1/user/update-user/:id
 // ----------------------------------------------------------------
 
 exports.updateUser = async (req, res) => {
@@ -323,19 +323,20 @@ exports.updateUser = async (req, res) => {
     });
 
     try {
-        const user = await User.findByIdAndUpdate(req.params.id, req.body, {
-            new: true, runValidators: true
-        });
+        const user = await User.findById(req.params.id);
         if (!user) {
             return res.status(404).json({
                 success: false,
                 message: "User not found"
             });
         }
+        const updateUser = await User.findByIdAndUpdate(user.id, req.body, {
+            new: true, runValidators: true
+        });
         res.status(200).json({
             success: true,
             message: "User updated successfully",
-            data: user
+            data: updateUser
         });
 
     } catch (err) {
@@ -349,7 +350,7 @@ exports.updateUser = async (req, res) => {
 
 // ----------------------------------------------------------------
 // Delete user by id
-// DELETE http://localhost:5000/api/auth/delete-user/:id
+// DELETE http://localhost:5656/api/v1/user/delete-user/:id
 // ----------------------------------------------------------------
 
 exports.deleteUser = async (req, res) => {

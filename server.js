@@ -4,6 +4,8 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./database/connaction');
 const userRoutes = require('./routes/userRoute');
 const paymentRoutes = require('./routes/paymentRoutes');
+const bodyparser = require("body-parser");
+const path = require('path');
 
 dotenv.config();
 const app = express();
@@ -17,11 +19,10 @@ app.use(express.urlencoded({ extended: true }));
 connectDB();
 
 // Routes
-app.use('/api/auth', userRoutes);
-app.use('/api/payment', paymentRoutes);
+app.use('/api/v1/user', userRoutes);
+// app.use('/api/payment', paymentRoutes);
 
-const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-    console.log(`server :  http://localhost:${PORT}`);
+app.listen(process.env.PORT, () => {
+    console.log(`server :  http://localhost:${process.env.PORT}`);
 });

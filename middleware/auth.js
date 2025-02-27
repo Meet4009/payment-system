@@ -3,6 +3,7 @@ require('dotenv').config();
 // Add the following line to require cookie-parser
 const cookieParser = require('cookie-parser');
 const User = require('../models/userModel');
+const services = require('../services/userServices');
 
 exports.authMiddleware = async (req, res, next) => {
     let token;
@@ -20,18 +21,21 @@ exports.authMiddleware = async (req, res, next) => {
 
     // get the token from cookie
     if (req.cookies.jwt) {
+
         token = req.cookies.jwt; // Check in cookies if not in header
 
-    } else {
+    } else {  
         return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
     try {
-        const decodeData =  jwt.verify(token, process.env.JWT_SECRET);
+        const decodeData = jwt.verify(token, process.env.JWT_SECRET);
         req.user = await User.findById(decodeData.id); // Attach decoded token (user) to req
         next();
     } catch (err) {
+        services.loginpage
         res.status(401).json({ message: 'Not authorized, token failed' });
+        
     }
 };
 

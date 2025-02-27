@@ -8,8 +8,6 @@ exports.doHash = async (password) => {
 
 // Compare the password during signin
 exports.comparePassword = async (password, hashedPassword) => {
-
-
     const result = await bcrypt.compare(password, hashedPassword);
     return result;
 }

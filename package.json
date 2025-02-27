@@ -5,17 +5,20 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "server.js ",
-    "dev": "nodemon server.js "
+    "dev": "nodemon server.js -e js,ejs,json,css"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.3",
     "cookie-parser": "^1.4.7",
     "crypto": "^1.0.1",
     "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
     "express": "^4.21.1",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",

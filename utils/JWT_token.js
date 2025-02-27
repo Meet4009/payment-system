@@ -12,7 +12,7 @@ const generateToken = (userId) => {
 
 const setCookie = (res, token) => {
     const options = {
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day
+        expires: new Date(Date.now() + 60 * 60 * 1000), // 1 day
         httpOnly: true,
     };
     res.cookie('jwt', token, options);

@@ -5,8 +5,8 @@ const registerValidation = (data) => {
     const schema = Joi.object({
         name: Joi.string().min(4).required(),
         email: Joi.string().min(6).required().email(),
-        password: Joi.string().min(8).required(),
-        mobile: Joi.string().length(10).pattern(/^[0-9]+$/).required(),
+        password: Joi.string().min(4).required(),
+        phone: Joi.string().length(10).pattern(/^[0-9]+$/).required(),
     });
     return schema.validate(data);
 };
@@ -14,7 +14,7 @@ const registerValidation = (data) => {
 // Login Validation Function
 const loginValidation = (data) => {
     const schema = Joi.object({
-        login: Joi.string().required(), // Can be email or mobile number
+        login: Joi.string().required(), // Can be email or phone number
         password: Joi.string().min(4).required(),
     });
     return schema.validate(data);
@@ -25,7 +25,7 @@ const profileUpdateValidation = (data) => {
     const schema = Joi.object({
         name: Joi.string().min(4),
         email: Joi.string().min(6).email(),
-        mobile: Joi.string().length(10).pattern(/^[0-9]+$/),
+        phone: Joi.string().length(10).pattern(/^[0-9]+$/),
     });
     return schema.validate(data);
 };

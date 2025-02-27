@@ -3,36 +3,28 @@ const router = express.Router();
 
 // Routes for user authentication
 
-const {
-    register,
-    login,
-    logout,
-    updateProfile,
-    getProfile,
-    updatePassword,
-    deleteProfile,
-    forgotPassword,
-    resetPassword,
-    getAllUsers,
-    getUserById,
-    updateUser,
-    deleteUser
-} = require('../controllers/userController');
-const { authMiddleware, authorizeRoles } = require('../middleware/auth');
+const userController = require('../controllers/userController');
 
-router.post('/register', register);
-router.post('/login', login);
-router.get('/logout', authMiddleware, logout);
-router.get('/profile', authMiddleware, getProfile);
-router.put('/profile-update', authMiddleware, updateProfile);
-router.put('/update-password', authMiddleware, updatePassword);
-router.get('/delete', authMiddleware, deleteProfile);
-// router.post('/forgot-password', forgotPassword);
-// router.put('/reset-password/:token', resetPassword);
+const services = require('../services/userServices');
 
-router.get('/users', authMiddleware, authorizeRoles("admin"), getAllUsers);
-router.get('/user/:id', authMiddleware, authorizeRoles("admin"), getUserById);
-router.put('/user/:id', authMiddleware, authorizeRoles("admin"), updateUser);
-router.delete('/user/:id', authMiddleware, authorizeRoles("admin"), deleteUser);
+const auth = require('../middleware/auth');
+
+
+// API routes
+
+router.post('/register', userController.register);
+router.post('/login', userController.login);
+router.get('/logout', auth.authMiddleware, userController.logout);
+router.get('/profile', auth.authMiddleware, userController.getProfile);
+router.put('/profile-update', auth.authMiddleware, userController.updateProfile);
+router.put('/update-password', auth.authMiddleware, userController.updatePassword);
+router.get('/delete', auth.authMiddleware, userController.deleteProfile);
+// router.post('/forgot-password', userController.forgotPassword);
+// router.put('/reset-password/:token', userController.resetPassword);
+
+router.get('/', auth.authMiddleware, auth.authorizeRoles("admin"), userController.getAllUsers);
+router.get('/:id', auth.authMiddleware, auth.authorizeRoles("admin"), userController.getUserById);
+router.put('/:id', auth.authMiddleware, auth.authorizeRoles("admin"), userController.updateUser);
+router.delete('/:id', auth.authMiddleware, auth.authorizeRoles("admin"), userController.deleteUser);
 
 module.exports = router;
