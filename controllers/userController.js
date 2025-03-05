@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -9,368 +10,352 @@ const userProtect = require('../utils/userProtect');
 const services = require('../services/userServices');
 
 
-//////////////////////////////// USER SIDE ////////////////////////////////
+//////////////////////////////////////////// USER SIDE ////////////////////////////////////////////
 
-// ----------------------------------------------------------------
-// Register a new user
-// POST http://localhost:5656/api/v1/user/register
-// ----------------------------------------------------------------
+// -------------------------------------------- 1 // Register a new user --------------------------------------------
+
 exports.register = async (req, res) => {
-
-    const { name, email, phone, password, } = req.body;
-
     try {
+        const { name, email, phone, password } = req.body;
+
+        // Validate request body
         const { error } = registerValidation(req.body);
         if (error) {
-            return res.status(400).json({
-                success: false,
-                message: error.details[0].message
-            });
+            return res.status(400).json({ success: false, message: error.details[0].message });
         }
 
-        const userExists = await User.findOne({ $or: [{ email }, { phone }] });
-        if (userExists) {
-            return res.status(400).json({
-                success: false,
-                message: 'User already exists'
-            });
+        // Check if user already exists
+        if (await User.findOne({ $or: [{ email }, { phone }] })) {
+            return res.status(400).json({ success: false, message: "User already exists" });
         }
 
+        // Determine user role
+        const role = (await User.countDocuments()) === 0 ? "admin" : "user";
+
+        // Hash password and create user
         const hashedPassword = await userProtect.doHash(password);
-        const newUser = new User({ name, email, phone, password: hashedPassword, });
+        const user = await new User({ name, email, phone, password: hashedPassword, role }).save();
 
-        const user = await newUser.save();
-        newUser.password = undefined;
-
-        res.status(201).json({
-            success: true,
-            message: "User created successfully",
-            data: user
-        });
-
+        res.status(201).json({ success: true, message: "User created successfully", data: user });
     } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server Error, ${err.message}`
-        });
+        res.status(500).json({ success: false, message: `Server Error: ${err.message}` });
     }
 };
+// ------------------------------------------------------------------------------------------------------------------
 
-// ----------------------------------------------------------------
-// Login a user
-// POST http://localhost:5656/api/v1/user/login
-// ----------------------------------------------------------------
 
-exports.login = async (req, res, next) => {
-    const { error } = loginValidation(req.body);
-    if (error) return res.status(400).json({
-        success: false,
-        message: error.details[0].message
-    });
+// -------------------------------------------- 2 // Login a user ---------------------------------------------------
 
-    const { login, password } = req.body;
+exports.login = async (req, res) => {
     try {
-        const user = await User.findOne({ $or: [{ email: login }, { phone: login }] }).select('+password');
+        const { login, password } = req.body;
 
+        // Validate input
+        const { error } = loginValidation(req.body);
+        if (error) return res.status(400).json({ success: false, message: error.details[0].message });
+
+        // Find user by email or phone
+        const user = await User.findOne({ $or: [{ email: login }, { phone: login }] }).select('+password');
         if (!user || !(await userProtect.comparePassword(password, user.password))) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid email/phone or password'
-            });
+            return res.status(400).json({ success: false, message: 'Invalid email/phone or password' });
         }
 
+        // Update user login status & generate token
         user.loggedIn = true;
         await user.save();
-
         const token = generateToken(user._id);
         setCookie(res, token);
 
+        // Respond with success
         res.status(200).json({
-            Success: true,
-            message: "User Login Successfully",
-            data: user,
+            success: true,
+            message: "User logged in successfully",
+            // data: { _id: user._id, email: user.email, phone: user.phone },
+            data: { user },
             token
         });
     } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server error ${err.message}`
-        });
+        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
     }
 };
+// ------------------------------------------------------------------------------------------------------------------
 
-// ----------------------------------------------------------------
-// Logout a user
-// GET http://localhost:5656/api/v1/user/logout
-// ----------------------------------------------------------------
+
+// --------------------------------------------- 3 // Logout a user -------------------------------------------------
 
 exports.logout = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            { loggedIn: false },
+            { new: true }
+        );
+
         if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
+            return res.status(404).json({ success: false, message: "User not found" });
         }
 
-        res.clearCookie('jwt');
+        res.clearCookie("jwt");
 
-        user.loggedIn = false;
-        await user.save();
-
-        res.status(200).json({
-            success: true,
-            message: `${user.name} logged out successfully`
-        });
+        res.status(200).json({ success: true, message: `${user.name} logged out successfully` });
     } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server error ${err.message}`
-        });
+        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
     }
 };
+// ------------------------------------------------------------------------------------------------------------------
 
-// ----------------------------------------------------------------
-// Get user profile
-// GET http://localhost:5656/api/v1/user/profile
-// ----------------------------------------------------------------
+
+// ---------------------------------------------- 4 // Get user profile ---------------------------------------------
 
 exports.getProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
+        if (!req.user || !req.user.id) {
+            return res.status(400).json({ success: false, message: "Invalid request" });
         }
 
-        res.status(200).json({
-            success: true,
-            data: user
-        });
-    }
-    catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server error ${err.message}`
-        });
-    }
-}
+        const user = await User.findById(req.user.id).select("-password").lean();
 
-// ----------------------------------------------------------------
-// Update user profile
-// PUT http://localhost:5656/api/v1/user/profile-update
-// ----------------------------------------------------------------
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        res.status(200).json({ success: true, data: user });
+    } catch (err) {
+        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+    }
+};
+// ------------------------------------------------------------------------------------------------------------------
+
+
+// ----------------------------------------------- 5 // Update user profile -----------------------------------------
 
 exports.updateProfile = async (req, res) => {
-    const { error } = profileUpdateValidation(req.body);
-    if (error) return res.status(400).json({
-        success: false,
-        message: error.details[0].message
-    });
-
     try {
-        const user = await User.findByIdAndUpdate(req.user.id, req.body, { new: true, runValidators: true });
+        const { id } = req.user;
+        
+        // Find existing user
+        const existingUser = await User.findById(id);
+        if (!existingUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Only update fields that are provided in req.body
+        const updatedData = {
+            name: req.body.name || existingUser.name,
+            email: req.body.email || existingUser.email,
+            phone: req.body.phone || existingUser.phone,
+        };
+
+        // Validate updated data
+        const { error } = profileUpdateValidation(updatedData);
+        if (error) {
+            return res.status(400).json({ message: error.details[0].message });
+        }
+        
+        // Update user
+        const updatedUser = await User.findByIdAndUpdate(id, updatedData, { new: true });
+        
+        res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
+    } catch (error) {
+        console.error("Error in updating user", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+// ------------------------------------------------------------------------------------------------------------------
+
+// ------------------------------------------------ 6 // Update user password ---------------------------------------
+
+exports.updatePassword = async (req, res, next) => {
+    try {
+        const { password, newPassword, confirmPassword } = req.body;
+
+        // Validate request body
+        const { error } = updatePasswordValidation(req.body);
+        if (error) {
+            return res.status(400).json({ success: false, message: error.details[0].message });
+        }
+
+        // Find user and include password field
+        const user = await User.findById(req.user.id).select("+password");
         if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
+            return res.status(404).json({ success: false, message: "User not found" });
         }
 
-        res.status(200).json({
-            success: true,
-            message: "Profile updated successfully",
-            data: user
-        });
-    }
-    catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server error ${err.message}`
-        });
-    }
-}
-
-// ----------------------------------------------------------------
-// Update user password
-// PUT http://localhost:5656/api/v1/user/update-password
-// ----------------------------------------------------------------
-
-exports.updatePassword = async (req, res) => {
-    const { password, newPassword, confrimPassword } = req.body;
-    const { error } = updatePasswordValidation(req.body);
-    if (error) return res.status(400).json({
-        success: false,
-        message: error.details[0].message
-    });
-
-
-    try {
-        const user = await User.findById(req.user.id).select('+password');
-        if (!user || !(await userProtect.comparePassword(password, user.password))) {
-            return res.status(401).json({
-                success: false,
-                message: 'Current password is incorrect'
-            });
+        // Check if current password is correct
+        const isMatch = await userProtect.comparePassword(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: "Current password is incorrect" });
         }
-        const hashedPassword = await userProtect.doHash(newPassword);
-        user.password = hashedPassword;
+
+        // Check if new password is same as current password
+        if (password === newPassword) {
+            return res.status(400).json({ success: false, message: "Current password and new password must not match" });
+        }
+
+        // Check if new password matches confirm password
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ success: false, message: "New password and confirm password do not match" });
+        }
+
+        // Hash and update new password
+        user.password = await userProtect.doHash(newPassword);
         await user.save();
-        res.status(200).json({
-            success: true,
-            message: "Password updated successfully"
-        });
+
+        res.status(200).json({ success: true, message: "Password updated successfully" });
 
     } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server error ${err.message}`
-        });
+        console.error("Error updating password:", err);
+        next(err); // Pass error to global error-handling middleware
     }
-}
+};
 
-// ----------------------------------------------------------------
-// Delete user
-// DELETE http://localhost:5656/api/v1/user/delete-user/:id
+// ------------------------------------------------------------------------------------------------------------------
 
-// Note: This route is protected by the userProtect middleware. It requires a valid JWT token to access.
+
+// ------------------------------------------------- 7 // Delete user -----------------------------------------------
 
 exports.deleteProfile = async (req, res) => {
     try {
-        const user = await User.findByIdAndDelete(req.user.id);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
+        if (!req.user || !req.user.id) {
+            return res.status(400).json({ success: false, message: "Invalid request" });
         }
-        res.status(200).json({
-            success: true,
-            message: "User deleted successfully"
-        });
+
+        // Find and delete the user
+        const user = await User.findByIdAndDelete(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        // Clear authentication cookies (if applicable)
+        res.clearCookie("jwt", { httpOnly: true, secure: true, sameSite: "Strict" });
+
+        res.status(200).json({ success: true, message: "User deleted successfully" });
+
     } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server error ${err.message}`
-        });
+        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
     }
 };
+// ------------------------------------------------------------------------------------------------------------------
 
-//////////////////////////////// ADMIN SIDE ////////////////////////////////
 
-// ----------------------------------------------------------------
-// Get all users
-// GET http://localhost:5656/api/v1/user/users
-// ----------------------------------------------------------------
+//////////////////////////////////////////// ADMIN SIDE ////////////////////////////////////////////
+
+
+// ------------------------------------------------- 8 // Get all users --------------------------------------------
 
 exports.getAllUsers = async (req, res) => {
     try {
-        const users = await User.find({ role: 'user' });
-        res.status(200).json({
-            success: true,
-            data: users
-        });
+        // Optional: Pagination & Sorting
+        const limit = parseInt(req.query.limit) || 10; // Default: 10 users per page
+        const page = parseInt(req.query.page) || 1;
+        const skip = (page - 1) * limit;
+
+        // Fetch users, excluding passwords
+        const users = await User.find({ role: "user" })
+            .select("-password")
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 }) // Sort by newest users first
+            .lean();
+
+        res.status(200).json({ success: true, count: users.length, data: users });
+
     } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server error ${err.message}`
-        });
+        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
     }
 };
+// ------------------------------------------------------------------------------------------------------------------
 
-// ----------------------------------------------------------------
-// Get user by id
-// GET http://localhost:5656/api/v1/user/user/:id
-// ----------------------------------------------------------------
 
+// ------------------------------------------------- 9 // Get user by id -------------------------------------------
 
 exports.getUserById = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
+        const { id } = req.params;
+
+        // Validate MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: "Invalid user ID" });
         }
-        res.status(200).json({
-            success: true,
-            data: user
-        });
-    }
-    catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server error ${err.message}`
-        });
-    }
-}
 
+        // Fetch user and exclude password
+        const user = await User.findById(id).select("-password").lean();
 
-// ----------------------------------------------------------------
-// Update user by id
-// PUT http://localhost:5656/api/v1/user/update-user/:id
-// ----------------------------------------------------------------
-
-exports.updateUser = async (req, res) => {
-    const { error } = profileUpdateValidation(req.body);
-    if (error) return res.status(400).json({
-        success: false,
-        message: error.details[0].message
-    });
-
-    try {
-        const user = await User.findById(req.params.id);
         if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
+            return res.status(404).json({ success: false, message: "User not found" });
         }
-        const updateUser = await User.findByIdAndUpdate(user.id, req.body, {
-            new: true, runValidators: true
-        });
-        res.status(200).json({
-            success: true,
-            message: "User updated successfully",
-            data: updateUser
-        });
+
+        res.status(200).json({ success: true, data: user });
 
     } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server error ${err.message}`
-        });
+        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+
     }
+};
+// ------------------------------------------------------------------------------------------------------------------
 
-}
 
-// ----------------------------------------------------------------
-// Delete user by id
-// DELETE http://localhost:5656/api/v1/user/delete-user/:id
-// ----------------------------------------------------------------
+// ------------------------------------------------- 10 // Update user by id ---------------------------------------
+
+exports.updateUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Find existing user
+        const existingUser = await User.findOne({ _id:id });
+
+        if (!existingUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Only update fields that are provided in req.body
+        const updatedData = {
+            name: req.body.name || existingUser.name,
+            email: req.body.email || existingUser.email,
+            phone: req.body.phone || existingUser.phone,
+        };
+
+        // Validate updated data
+        const { error } = profileUpdateValidation(updatedData);
+        if (error) {
+            return res.status(400).json({ message: error.details[0].message });
+        }
+
+        // Update user
+        const updatedUser = await User.findByIdAndUpdate(existingUser.id, updatedData, { new: true });
+
+        res.status(200).json({ message: "User updated successfully", user: updatedUser });
+    } catch (error) {
+        console.error("Error in updating user", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+// ------------------------------------------------------------------------------------------------------------------
+
+
+// ------------------------------------------------- 11 // Delete user by id ---------------------------------------
 
 exports.deleteUser = async (req, res) => {
     try {
-        const user = await User.findByIdAndDelete(req.params.id);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-        }
-        res.status(200).json({
-            success: true,
-            message: "User deleted successfully"
-        });
-    } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: `Server error ${err.message}`
-        });
-    }
-}
+        const { id } = req.params;
 
+        // Validate MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: "Invalid user ID" });
+        }
+
+        // Find and delete user
+        const user = await User.findByIdAndDelete(id);
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        res.status(200).json({ success: true, message: "User deleted successfully" });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+    }
+};
+// ------------------------------------------------------------------------------------------------------------------

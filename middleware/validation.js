@@ -33,9 +33,9 @@ const profileUpdateValidation = (data) => {
 // Validate password reset
 const updatePasswordValidation = (data) => {
     const schema = Joi.object({
-        password: Joi.string().min(8).required(),
-        newPassword: Joi.string().min(8).required(),
-        confrimPassword: Joi.string().valid(Joi.ref('newPassword')).required(),
+        password: Joi.string().min(4).required(),
+        newPassword: Joi.string().min(4).required(),
+        confirmPassword: Joi.string().required(),
     });
     return schema.validate(data);
 };
