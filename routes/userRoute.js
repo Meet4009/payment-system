@@ -1,30 +1,40 @@
 const express = require('express');
 const router = express.Router();
-
-// Routes for user authentication
-
 const userController = require('../controllers/userController');
+const { authMiddleware, authorizeRoles } = require('../middleware/auth');
 
-const services = require('../services/userServices');
-
-const auth = require('../middleware/auth');
-
-
-// API routes
-
-router.post('/register', userController.register);
+// ✅ User Authentication Routes
+router.post('/register', userController.register);   
 router.post('/login', userController.login);
-router.get('/logout', auth.authMiddleware, userController.logout);
-router.get('/profile', auth.authMiddleware, userController.getProfile);
-router.put('/profile-update', auth.authMiddleware, userController.updateProfile);
-router.put('/update-password', auth.authMiddleware, userController.updatePassword);
-router.get('/delete', auth.authMiddleware, userController.deleteProfile);
+router.get('/logout', authMiddleware, userController.logout);
+
+// ✅ User Profile Routes (Protected)
+router
+    .route('/profile')
+    .get(authMiddleware, userController.getProfile)
+    .put(authMiddleware, userController.updateProfile)
+    .delete(authMiddleware, userController.deleteProfile); 
+
+router.put('/update-password', authMiddleware, userController.updatePassword);
+
+// ✅ Password Reset Routes (Optional)
 // router.post('/forgot-password', userController.forgotPassword);
 // router.put('/reset-password/:token', userController.resetPassword);
 
-router.get('/', auth.authMiddleware, auth.authorizeRoles("admin"), userController.getAllUsers);
-router.get('/:id', auth.authMiddleware, auth.authorizeRoles("admin"), userController.getUserById);
-router.put('/:id', auth.authMiddleware, auth.authorizeRoles("admin"), userController.updateUser);
-router.delete('/:id', auth.authMiddleware, auth.authorizeRoles("admin"), userController.deleteUser);
+// ✅ Admin Routes (Protected & Restricted)
+router.use(authMiddleware, authorizeRoles("admin"));
+
+router.route('/')
+    .get(userController.getAllUsers); // Get all users
+
+router
+    .route('/:id')
+    .get(userController.getUserById)  // Get single user
+    .put(userController.updateUser)   // Update user
+    .delete(userController.deleteUser); // Delete user
 
 module.exports = router;
+
+
+
+// http://localhost:5656/api/v1/user/

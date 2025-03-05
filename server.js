@@ -20,7 +20,7 @@ connectDB();
 
 // Routes
 app.use('/api/v1/user', userRoutes);
-// app.use('/api/payment', paymentRoutes);
+app.use('/api/v1/payment', paymentRoutes);
 
 
 app.listen(process.env.PORT, () => {
