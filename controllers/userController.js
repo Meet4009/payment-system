@@ -165,7 +165,7 @@ exports.updateProfile = async (req, res) => {
 
 // ------------------------------------------------ 6 // Update user password ---------------------------------------
 
-exports.updatePassword = async (req, res, next) => {
+exports.updatePassword = async (req, res) => {
     try {
         const { password, newPassword, confirmPassword } = req.body;
 
@@ -204,9 +204,8 @@ exports.updatePassword = async (req, res, next) => {
         res.status(200).json({ success: true, message: "Password updated successfully" });
 
     } catch (err) {
-        console.error("Error updating password:", err);
-        next(err); // Pass error to global error-handling middleware
-    }
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }   
 };
 
 // ------------------------------------------------------------------------------------------------------------------
