@@ -1,360 +1,250 @@
 const mongoose = require("mongoose");
 const User = require('../models/userModel');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-require('dotenv').config();
-
 const { generateToken, setCookie } = require('../utils/JWT_token');
 const { registerValidation, loginValidation, profileUpdateValidation, updatePasswordValidation } = require('../middleware/validation');
 const userProtect = require('../utils/userProtect');
-const services = require('../services/userServices');
-
+const ErrorHandler = require("../utils/errorHandler"); // Import the custom error handler
 
 //////////////////////////////////////////// USER SIDE ////////////////////////////////////////////
 
 // -------------------------------------------- 1 // Register a new user --------------------------------------------
 
-exports.register = async (req, res) => {
+exports.register = async (req, res, next) => {
     try {
         const { name, email, phone, password } = req.body;
 
-        // Validate request body
+        // Validate input
         const { error } = registerValidation(req.body);
-        if (error) {
-            return res.status(400).json({ success: false, message: error.details[0].message });
-        }
+        if (error) return next(new ErrorHandler(error.details[0].message, 400));
 
-        // Check if user already exists
-        if (await User.findOne({ $or: [{ email }, { phone }] })) {
-            return res.status(400).json({ success: false, message: "User already exists" });
-        }
+        // Check if user exists
+        const userExists = await User.findOne({ $or: [{ email }, { phone }] });
+        if (userExists) return next(new ErrorHandler("User already exists", 400));
 
-        // Determine user role
+        // Assign role (first user is admin)
         const role = (await User.countDocuments()) === 0 ? "admin" : "user";
 
-        // Hash password and create user
+        // Hash password & create user
         const hashedPassword = await userProtect.doHash(password);
-        const user = await new User({ name, email, phone, password: hashedPassword, role }).save();
+        const user = await User.create({ name, email, phone, password: hashedPassword, role });
 
-        res.status(201).json({ success: true, message: "User created successfully", data: user });
+        res.status(201).json({ success: true, message: "User registered successfully", data: user });
+
     } catch (err) {
-        res.status(500).json({ success: false, message: `Server Error: ${err.message}` });
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
 };
-// ------------------------------------------------------------------------------------------------------------------
 
 
 // -------------------------------------------- 2 // Login a user ---------------------------------------------------
 
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
     try {
         const { login, password } = req.body;
 
         // Validate input
         const { error } = loginValidation(req.body);
-        if (error) return res.status(400).json({ success: false, message: error.details[0].message });
+        if (error) return next(new ErrorHandler(error.details[0].message, 400));
 
         // Find user by email or phone
-        const user = await User.findOne({ $or: [{ email: login }, { phone: login }] }).select('+password');
+        const user = await User.findOne({ $or: [{ email: login }, { phone: login }] }).select("+password");
         if (!user || !(await userProtect.comparePassword(password, user.password))) {
-            return res.status(400).json({ success: false, message: 'Invalid email/phone or password' });
+            return next(new ErrorHandler("Invalid credentials", 401));
         }
 
-        // Update user login status & generate token
+        // Update login status & generate token
         user.loggedIn = true;
         await user.save();
         const token = generateToken(user._id);
         setCookie(res, token);
 
-        // Respond with success
-        res.status(200).json({
-            success: true,
-            message: "User logged in successfully",
-            // data: { _id: user._id, email: user.email, phone: user.phone },
-            data: { user },
-            token
-        });
+        // Remove password from response
+        const { password: _, ...userData } = user.toObject();
+
+        res.status(200).json({ success: true, message: "Login successful", data: userData, token });
+
     } catch (err) {
-        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
 };
-// ------------------------------------------------------------------------------------------------------------------
 
 
 // --------------------------------------------- 3 // Logout a user -------------------------------------------------
 
-exports.logout = async (req, res) => {
+exports.logout = async (req, res, next) => {
     try {
-        const user = await User.findByIdAndUpdate(
-            req.user.id,
-            { loggedIn: false },
-            { new: true }
-        );
-
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
+        const user = await User.findByIdAndUpdate(req.user.id, { loggedIn: false }, { new: true });
+        if (!user) return next(new ErrorHandler("User not found", 404));
 
         res.clearCookie("jwt");
+        res.status(200).json({ success: true, message: "Logged out successfully" });
 
-        res.status(200).json({ success: true, message: `${user.name} logged out successfully` });
     } catch (err) {
-        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
 };
-// ------------------------------------------------------------------------------------------------------------------
 
 
 // ---------------------------------------------- 4 // Get user profile ---------------------------------------------
 
-exports.getProfile = async (req, res) => {
+exports.getProfile = async (req, res, next) => {
     try {
-        if (!req.user || !req.user.id) {
-            return res.status(400).json({ success: false, message: "Invalid request" });
-        }
-
         const user = await User.findById(req.user.id).select("-password").lean();
-
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
+        if (!user) return next(new ErrorHandler("User not found", 404));
 
         res.status(200).json({ success: true, data: user });
+
     } catch (err) {
-        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
 };
-// ------------------------------------------------------------------------------------------------------------------
 
 
 // ----------------------------------------------- 5 // Update user profile -----------------------------------------
-
-exports.updateProfile = async (req, res) => {
+exports.updateProfile = async (req, res, next) => {
     try {
         const { id } = req.user;
-        
-        // Find existing user
-        const existingUser = await User.findById(id);
-        if (!existingUser) {
-            return res.status(404).json({ message: "User not found" });
-        }
 
-        // Only update fields that are provided in req.body
-        const updatedData = {
-            name: req.body.name || existingUser.name,
-            email: req.body.email || existingUser.email,
-            phone: req.body.phone || existingUser.phone,
-        };
+        // Validate input
+        const { error } = profileUpdateValidation(req.body);
+        if (error) return next(new ErrorHandler(error.details[0].message, 400));
 
-        // Validate updated data
-        const { error } = profileUpdateValidation(updatedData);
-        if (error) {
-            return res.status(400).json({ message: error.details[0].message });
-        }
-        
         // Update user
-        const updatedUser = await User.findByIdAndUpdate(id, updatedData, { new: true });
-        
-        res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
-    } catch (error) {
-        console.error("Error in updating user", error);
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
+        const updatedUser = await User.findByIdAndUpdate(id, req.body, {
+            new: true,
+            runValidators: true
+        }).select("-password");
+
+        if (!updatedUser) return next(new ErrorHandler("User not found", 404));
+
+        res.status(200).json({ success: true, message: "Profile updated successfully", data: updatedUser });
+
+    } catch (err) {
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
 };
-// ------------------------------------------------------------------------------------------------------------------
+
+// 
 
 // ------------------------------------------------ 6 // Update user password ---------------------------------------
-
-exports.updatePassword = async (req, res) => {
+exports.updatePassword = async (req, res, next) => {
     try {
         const { password, newPassword, confirmPassword } = req.body;
 
-        // Validate request body
+        // Validate input
         const { error } = updatePasswordValidation(req.body);
-        if (error) {
-            return res.status(400).json({ success: false, message: error.details[0].message });
-        }
+        if (error) return next(new ErrorHandler(error.details[0].message, 400));
 
-        // Find user and include password field
         const user = await User.findById(req.user.id).select("+password");
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
+        if (!user) return next(new ErrorHandler("User not found", 404));
+
+        if (!(await userProtect.comparePassword(password, user.password))) {
+            return next(new ErrorHandler("Incorrect current password", 401));
         }
 
-        // Check if current password is correct
-        const isMatch = await userProtect.comparePassword(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({ success: false, message: "Current password is incorrect" });
-        }
-
-        // Check if new password is same as current password
-        if (password === newPassword) {
-            return res.status(400).json({ success: false, message: "Current password and new password must not match" });
-        }
-
-        // Check if new password matches confirm password
         if (newPassword !== confirmPassword) {
-            return res.status(400).json({ success: false, message: "New password and confirm password do not match" });
+            return next(new ErrorHandler("New password & confirm password do not match", 400));
         }
 
-        // Hash and update new password
+        // Update password
         user.password = await userProtect.doHash(newPassword);
         await user.save();
 
         res.status(200).json({ success: true, message: "Password updated successfully" });
 
     } catch (err) {
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
-    }   
-};
-
-// ------------------------------------------------------------------------------------------------------------------
-
-
-// ------------------------------------------------- 7 // Delete user -----------------------------------------------
-
-exports.deleteProfile = async (req, res) => {
-    try {
-        if (!req.user || !req.user.id) {
-            return res.status(400).json({ success: false, message: "Invalid request" });
-        }
-
-        // Find and delete the user
-        const user = await User.findByIdAndDelete(req.user.id);
-
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
-
-        // Clear authentication cookies (if applicable)
-        res.clearCookie("jwt", { httpOnly: true, secure: true, sameSite: "Strict" });
-
-        res.status(200).json({ success: true, message: "User deleted successfully" });
-
-    } catch (err) {
-        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
 };
-// ------------------------------------------------------------------------------------------------------------------
 
+// ------------------------------------------------- 7 // Delete user -----------------------------------------------
+exports.deleteProfile = async (req, res, next) => {
+    try {
+        await User.findByIdAndDelete(req.user.id);
+
+        res.clearCookie("jwt", { httpOnly: true, secure: true, sameSite: "Strict" });
+        res.status(200).json({ success: true, message: "Account deleted successfully" });
+
+    } catch (err) {
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
+    }
+};
 
 //////////////////////////////////////////// ADMIN SIDE ////////////////////////////////////////////
 
 
 // ------------------------------------------------- 8 // Get all users --------------------------------------------
-
-exports.getAllUsers = async (req, res) => {
+exports.getAllUsers = async (req, res, next) => {
     try {
-        // Optional: Pagination & Sorting
-        const limit = parseInt(req.query.limit) || 10; // Default: 10 users per page
-        const page = parseInt(req.query.page) || 1;
+        const limit = Math.min(parseInt(req.query.limit) || 10, 100);
+        const page = Math.max(parseInt(req.query.page) || 1, 1);
         const skip = (page - 1) * limit;
 
-        // Fetch users, excluding passwords
-        const users = await User.find({ role: "user" })
-            .select("-password")
-            .skip(skip)
-            .limit(limit)
-            .sort({ createdAt: -1 }) // Sort by newest users first
-            .lean();
+        const totalUsers = await User.countDocuments({ role: "user" });
+        const users = await User.find({ role: "user" }).select("-password").skip(skip).limit(limit).sort({ createdAt: -1 }).lean();
 
-        res.status(200).json({ success: true, count: users.length, data: users });
+        res.status(200).json({ success: true, count: users.length, totalUsers, currentPage: page, totalPages: Math.ceil(totalUsers / limit), data: users });
 
     } catch (err) {
-        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
 };
-// ------------------------------------------------------------------------------------------------------------------
-
 
 // ------------------------------------------------- 9 // Get user by id -------------------------------------------
-
-exports.getUserById = async (req, res) => {
+exports.getUserById = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) return next(new ErrorHandler("Invalid user ID", 400));
 
-        // Validate MongoDB ObjectId
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ success: false, message: "Invalid user ID" });
-        }
-
-        // Fetch user and exclude password
-        const user = await User.findById(id).select("-password").lean();
-
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
+        const user = await User.findById(req.params.id).select("-password").lean();
+        if (!user) return next(new ErrorHandler("User not found", 404));
 
         res.status(200).json({ success: true, data: user });
 
     } catch (err) {
-        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
-
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
 };
-// ------------------------------------------------------------------------------------------------------------------
 
-
-// ------------------------------------------------- 10 // Update user by id ---------------------------------------
-
-exports.updateUser = async (req, res) => {
+// -------------------------------------------- 10. Update User --------------------------------------------
+exports.updateUser = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        // Find existing user
-        const existingUser = await User.findOne({ _id:id });
+        if (!mongoose.Types.ObjectId.isValid(id)) return next(new ErrorHandler("Invalid user ID", 400));
 
-        if (!existingUser) {
-            return res.status(404).json({ message: "User not found" });
-        }
+        const { error } = profileUpdateValidation(req.body);
+        if (error) return next(new ErrorHandler(error.details[0].message, 400));
 
-        // Only update fields that are provided in req.body
-        const updatedData = {
-            name: req.body.name || existingUser.name,
-            email: req.body.email || existingUser.email,
-            phone: req.body.phone || existingUser.phone,
-        };
+        const updatedUser = await User.findByIdAndUpdate(id, req.body, {
+            new: true,
+            runValidators: true
+        }).select("-password").lean();
 
-        // Validate updated data
-        const { error } = profileUpdateValidation(updatedData);
-        if (error) {
-            return res.status(400).json({ message: error.details[0].message });
-        }
+        if (!updatedUser) return next(new ErrorHandler("User not found", 404));
 
-        // Update user
-        const updatedUser = await User.findByIdAndUpdate(existingUser.id, updatedData, { new: true });
+        res.status(200).json({ success: true, message: "User updated successfully", data: updatedUser });
 
-        res.status(200).json({ message: "User updated successfully", user: updatedUser });
-    } catch (error) {
-        console.error("Error in updating user", error);
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    } catch (err) {
+        next(new ErrorHandler(`Server error: ${err.message}`, 500));
     }
 };
-// ------------------------------------------------------------------------------------------------------------------
 
-
-// ------------------------------------------------- 11 // Delete user by id ---------------------------------------
-
-exports.deleteUser = async (req, res) => {
+// -------------------------------------------- 11. Delete User --------------------------------------------
+exports.deleteUser = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        // Validate MongoDB ObjectId
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ success: false, message: "Invalid user ID" });
-        }
+        if (!mongoose.Types.ObjectId.isValid(id)) return next(new ErrorHandler("Invalid user ID", 400));
 
-        // Find and delete user
+        if (req.user.id === id) return next(new ErrorHandler("You cannot delete your own account", 403));
+
         const user = await User.findByIdAndDelete(id);
 
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
+        if (!user) return next(new ErrorHandler("User not found", 404));
 
         res.status(200).json({ success: true, message: "User deleted successfully" });
 
     } catch (err) {
-        res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+        next(new ErrorHandler(`Server error: ${err.message}`, 500));
     }
 };
-// ------------------------------------------------------------------------------------------------------------------
