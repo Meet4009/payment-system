@@ -25,7 +25,7 @@ const paymentSchema = new mongoose.Schema({
     payment_type: {
         type: String,
         required: true,
-        enum : ['deposite', 'withdrawal'],
+        enum : ['deposit', 'withdrawal'],
     },
     status: {
         type: String,

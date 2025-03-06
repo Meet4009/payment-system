@@ -6,7 +6,7 @@ const registerValidation = (data) => {
         name: Joi.string().min(4).required(),
         email: Joi.string().min(6).required().email(),
         password: Joi.string().min(4).required(),
-        phone: Joi.number().length(10).pattern(/^[0-9]+$/).required(),
+        phone: Joi.string().length(10).pattern(/^[0-9]+$/).required(),
     });
     return schema.validate(data);
 };
@@ -25,7 +25,7 @@ const profileUpdateValidation = (data) => {
     const schema = Joi.object({
         name: Joi.string().min(4),
         email: Joi.string().min(6).email(),
-        phone: Joi.number().length(10).pattern(/^[0-9]+$/),
+        phone: Joi.string().length(10).pattern(/^[0-9]+$/),
     });
     return schema.validate(data);
 };
@@ -40,4 +40,14 @@ const updatePasswordValidation = (data) => {
     return schema.validate(data);
 };
 
-module.exports = { registerValidation, loginValidation, profileUpdateValidation, updatePasswordValidation };
+
+// Validate deposit
+const depositValidation = (data) => {
+    const schema = Joi.object({
+        amount: Joi.number().positive().required(),
+        utr_no: Joi.string().min(12).required(),
+    });
+    return schema.validate(data);
+};
+
+module.exports = { registerValidation, loginValidation, profileUpdateValidation, updatePasswordValidation, depositValidation };

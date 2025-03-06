@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./database/connaction');
 const userRoutes = require('./routes/userRoute');
 const paymentRoutes = require('./routes/paymentRoutes');
+const errorMiddleware = require('./middleware/error');
 const bodyparser = require("body-parser");
 const path = require('path');
 
@@ -21,6 +22,8 @@ connectDB();
 // Routes
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/payment', paymentRoutes);
+
+app.use(errorMiddleware);
 
 
 app.listen(process.env.PORT, () => {

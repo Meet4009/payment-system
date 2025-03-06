@@ -205,7 +205,7 @@ exports.getUserById = async (req, res, next) => {
     }
 };
 
-// -------------------------------------------- 10. Update User --------------------------------------------
+// -------------------------------------------- 10 // Update User --------------------------------------------
 exports.updateUser = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -229,7 +229,7 @@ exports.updateUser = async (req, res, next) => {
     }
 };
 
-// -------------------------------------------- 11. Delete User --------------------------------------------
+// -------------------------------------------- 11 // Delete User --------------------------------------------
 exports.deleteUser = async (req, res, next) => {
     try {
         const { id } = req.params;
