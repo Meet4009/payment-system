@@ -36,7 +36,7 @@ const paymentSchema = new mongoose.Schema({
     action_status: {    
         type: String,
         required: true,
-        enum : ['approve', 'reject', 'pending'],
+        enum : ['approved', 'rejected', 'pending'],
         default: 'pending',
     },
     createdAt: {
