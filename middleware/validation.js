@@ -50,4 +50,12 @@ const depositValidation = (data) => {
     return schema.validate(data);
 };
 
-module.exports = { registerValidation, loginValidation, profileUpdateValidation, updatePasswordValidation, depositValidation };
+const withdrawValidation = (data) => {
+    const schema = Joi.object({
+        amount: Joi.number().positive().required(),
+        upi_id: Joi.string().min(8).required(),
+    });
+    return schema.validate(data);
+};
+
+module.exports = { registerValidation, loginValidation, profileUpdateValidation, updatePasswordValidation, depositValidation, withdrawValidation };

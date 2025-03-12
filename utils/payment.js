@@ -22,13 +22,27 @@ exports.paymentApprove = async (payment, statusCode, res, next) => {
 
             res.status(statusCode).json({
                 success: true,
-                message: 'Payment approved successfully',
+                message: 'deposit approved successfully',
+                data: {
+                    user: user,
+                    payment: payment
+                }
+            });
+        } else if ('withdrawal' === payment.payment_type) {
+            payment.action_status = 'approved'
+            payment.status = 'success';
+            payment.save();
+
+            res.status(statusCode).json({
+                success: true,
+                message: 'withdraw approved successfully',
                 data: {
                     user: user,
                     payment: payment
                 }
             });
         }
+
     } catch (error) {
         next(new ErrorHandler(error.message, error.statusCode));
     }
@@ -50,13 +64,31 @@ exports.paymentReject = async (payment, statusCode, res, next) => {
 
             res.status(statusCode).json({
                 success: true,
-                message: 'Payment rejected successfully',
+                message: 'deposit rejected successfully',
                 data: {
                     user: user,
-                    payment: payment    
+                    payment: payment
+                }
+            });
+        } else if ('withdrawal' === payment.payment_type) {
+            const newBalance = userBalance + payment.amount;
+            user.balance = newBalance;
+            await user.save();
+
+            payment.action_status = 'rejected'
+            payment.status = 'failed';
+            payment.save();
+
+            res.status(statusCode).json({
+                success: true,
+                message: 'withdraw rejected successfully',
+                data: {
+                    user: user,
+                    payment: payment
                 }
             });
         }
+
     } catch (error) {
         next(new ErrorHandler(error.message, error.statusCode));
     }

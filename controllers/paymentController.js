@@ -1,11 +1,11 @@
 const Payment = require("../models/paymentModel");
 const User = require("../models/userModel");
-const { depositValidation } = require("../middleware/validation");
-const { ErrorHandler } = require('../utils/errorHandler');
+const { depositValidation, withdrawValidation } = require("../middleware/validation");
+const ErrorHandler = require("../utils/errorHandler");
 const { paymentApprove, paymentReject } = require('../utils/payment');
 
 
-//////////////////////////////////////////// DEPOSIT ////////////////////////////////////////////
+
 
 ////////////////////// ---  USER SIDE --- //////////////////////
 
@@ -34,7 +34,36 @@ exports.deposit = async (req, res, next) => {
     }
 };
 
-// -------------------------------------------- 13 //get All Deposit and ststus wise --------------------------------------------
+// -------------------------------------------- 13 // post Withdraw --------------------------------------------
+
+exports.withdraw = async (req, res, next) => {
+    try {
+        // Validate input
+        const { error } = withdrawValidation(req.body);
+        if (error) return next(new ErrorHandler(error.details[0].message, 400));
+
+        const { amount, upi_id } = req.body;
+        const { id, currency_code } = req.user;
+        // Ensure user exists (optional, if `req.user` is always present)
+        const user = await User.findById(id);
+        if (!user) return next(new ErrorHandler("User not found", 404));
+        // Create & save payment
+
+        // Check if user has enough balance
+        if (user.balance < amount) return next(new ErrorHandler("Insufficient balance", 400));
+
+        const payment = await Payment.create({ userId: id, amount, upi_id, currency_code, payment_type: "withdrawal" });
+
+        res.status(201).json({ success: true, message: "Payment successful", payment });
+        // Update user balance
+        user.balance -= amount;
+        await user.save();
+    } catch (err) {
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
+    }
+}
+
+// -------------------------------------------- 14 //get All Deposit and ststus wise --------------------------------------------
 exports.fetchDeposits = async (req, res, next) => {
     try {
         const { status } = req.params;
@@ -47,9 +76,7 @@ exports.fetchDeposits = async (req, res, next) => {
 
         // Fetch deposits with optional status filter
         const query = { userId, payment_type: "deposit" };
-        console.log(query);
         if (status) query.status = status;
-        console.log(query);
 
         const payments = await Payment.find(query).lean();
 
@@ -61,13 +88,45 @@ exports.fetchDeposits = async (req, res, next) => {
         });
 
     } catch (err) {
-        next( ErrorHandler(`Server Error: ${err.message}`, 500));
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
 };
+// -------------------------------------------- 15 // get All Withdraw and status wise --------------------------------------------
+
+exports.fetchWithdrawals = async (req, res, next) => {
+    try {
+        const { status } = req.params;
+        const userId = req.user.id;
+        // Validate status if provided
+        if (status && !["pending", "success", "failed"].includes(status)) {
+            return next(new ErrorHandler("Invalid status provided", 400));
+        }
+        // Fetch withdrawals with optional status filter
+        const query = { userId, payment_type: "withdrawal" };
+        if (status) query.status = status;
+
+        const payments = await Payment.find(query).populate('userId');
+
+        res.status(200).json({
+            success: true,
+            message: `${status || "All"} payment fetch successful`,
+            count: payments.length,
+            payments
+        });
+
+    } catch (err) {
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
+    }
+}
+
+
+
+
+
 
 ////////////////////// ---  ADMIN SIDE --- //////////////////////
 
-// -------------------------------------------- 14 // Get All deposit and action_status Wise --------------------------------------------
+// -------------------------------------------- 16 // Get All deposit and action_status Wise --------------------------------------------
 
 exports.getDeposits = async (req, res, next) => {
     try {
@@ -98,31 +157,60 @@ exports.getDeposits = async (req, res, next) => {
     }
 };
 
+// -------------------------------------------- 17 // Get All withdrawal and action_status wise --------------------------------------------
 
-// -------------------------------------------- 17 // set Approve --------------------------------------------
-
-
-exports.setApprove = async (req, res, next) => {
+exports.getWithdrawals = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const { status } = req.params;
+        // Validate status if provided
+        const validStatus = ['approved', 'rejected', 'pending'];
+        if (status && !validStatus.includes(status)) {
+            return next(new ErrorHandler('Invalid payment status', 400));
+        }
+        // Construct query with optional status filter
+        const query = { payment_type: 'withdrawal' };
+        if (status) query.action_status = status;
 
-        // Fetch payment
-        const payment = await Payment.findOne({ payment_type: 'deposit', status: 'pending', _id: id })
-        if (!payment) return next(new ErrorHandler('Payment not found', 404));
+        // Fetch withdrawals
+        const payments = await Payment.find(query).populate('userId');
 
-        paymentApprove(payment, 200, res);
-
+        res.status(200).json({
+            success: true,
+            message: `Withdrawal status ${status || "all"} fetch successful`,
+            count: payments.length,
+            payments
+        });
     } catch (err) {
         next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
 }
 
-// -------------------------------------------- 18 // set Reject --------------------------------------------
-exports.setreject = async (req, res, next) => {
+
+// -------------------------------------------- 18 // set Approve --------------------------------------------
+
+
+exports.setApprovePayment = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        // Fetch payment
+        const payment = await Payment.findOne({ _id: id, status: 'pending' });
+        if (!payment) return next(new ErrorHandler('Payment not found or already processed', 404));
+
+        // Approve payment
+        paymentApprove(payment, 200, res);
+
+    } catch (err) {
+        next(new ErrorHandler(`Server Error: ${err.message}`, 500));
+    }
+};
+
+// -------------------------------------------- 19 // set Reject --------------------------------------------
+exports.setRejectPayment = async (req, res, next) => {
     try {
         const { id } = req.params;
         // Fetch payment
-        const payment = await Payment.findOne({ payment_type: 'deposit', status: 'pending', _id: id })
+        const payment = await Payment.findOne({ status: 'pending', _id: id })
         if (!payment) return next(new ErrorHandler('Payment not found', 404));
 
         paymentReject(payment, 200, res);
