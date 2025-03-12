@@ -1,52 +1,49 @@
 const mongoose = require('mongoose');
 
-// payment schema
-
-const paymentSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
+const paymentSchema = new mongoose.Schema(
+    {
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
+        utr_no: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        upi_id: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        amount: {
+            type: Number,
+            required: true,
+            min: 1,
+        },
+        currency_code: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        payment_type: {
+            type: String,
+            required: true,
+            enum: ['deposit', 'withdrawal'],
+        },
+        status: {
+            type: String,
+            enum: ['success', 'failed', 'pending'],
+            default: 'pending',
+        },
+        action_status: {
+            type: String,
+            enum: ['approved', 'rejected', 'pending'],
+            default: 'pending',
+        },
     },
-    utr_no: {
-        type: String,
-    },
-    upi_id: {
-        type: String,
-    },
-    amount: {
-        type: Number,
-        required: true,
-    },
-    currency_code: {
-        type: String,
-        required: true,
-    },
-    payment_type: {
-        type: String,
-        required: true,
-        enum : ['deposit', 'withdrawal'],
-    },
-    status: {
-        type: String,
-        required: true,
-        enum : ['success', 'failed', 'pending'],
-        default: 'pending',
-    },
-    action_status: {    
-        type: String,
-        required: true,
-        enum : ['approved', 'rejected', 'pending'],
-        default: 'pending',
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-});
+    { timestamps: true } // Automatically adds createdAt & updatedAt
+);
 
 module.exports = mongoose.model('Payment', paymentSchema);
-
-
-
-
