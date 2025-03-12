@@ -19,10 +19,6 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
-    upiId: {
-        type: String,
-        unique: true,
-    },
     balance: {
         type: Number,
         default: 0,
