@@ -189,12 +189,14 @@ label {
 }
 .login-link a {
     color: #000000;
-    font-weight: 500 ;
+    font-weight: 500;
+    font-size: 15px;
     /* text-decoration:none; */
 }
 .register-link a {
     color: #000000;
-    font-weight: 500 ;
+    font-weight: 500;
+    font-size: 15px;
     /* text-decoration:none; */
 }
 .iphone-14-pro-max-mockup .content-login {
@@ -222,8 +224,14 @@ label {
     font-weight: 800;
     color: #000000;
 }
-.iphone-14-pro-max-mockup .content-home .heading .sub-title
-.iphone-14-pro-max-mockup .content-login .heading .sub-title {
+.iphone-14-pro-max-mockup
+    .content-home
+    .heading
+    .sub-title
+    .iphone-14-pro-max-mockup
+    .content-login
+    .heading
+    .sub-title {
     /* font-size: 30px; */
     /* font-family: "Helvetica Neue", sans-serif; */
     font-weight: 800;
@@ -310,7 +318,7 @@ input:focus {
     font-size: 16px;
 }
 
-.rm-fp label{
+.rm-fp label {
     font-size: 16px;
 }
 
@@ -327,3 +335,37 @@ input:focus {
     cursor: pointer;
 }
 
+.profile-image {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.profile-image .profile {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    padding: 2px;
+    border: 2px solid #c6ed8a;
+}
+
+.profile-image .upload {
+    display: none;
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    padding: 2px;
+    border: 2px solid #c6ed8a;
+    transition: ALL 0.5S;
+}
+
+.profile:hover + .upload {
+    display: block;
+}
+
+
+.profile:hover {
+    filter:brightness(50%);
+}
