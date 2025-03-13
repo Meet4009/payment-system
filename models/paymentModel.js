@@ -9,12 +9,12 @@ const paymentSchema = new mongoose.Schema(
         },
         utr_no: {
             type: String,
-            required: true,
+            default:null,
             trim: true,
         },
         upi_id: {
             type: String,
-            required: true,
+            default:null,
             trim: true,
         },
         amount: {

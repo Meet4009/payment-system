@@ -6,10 +6,10 @@ const { paymentApprove, paymentReject } = require('../utils/payment');
 
 
 
-
 ////////////////////// ---  USER SIDE --- //////////////////////
 
-// -------------------------------------------- 12 // post Deposit --------------------------------------------
+// -------------------------------------------- 12 // post Deposit -------------------------------------------
+// -
 exports.deposit = async (req, res, next) => {
     try {
         // Validate input
@@ -42,28 +42,42 @@ exports.withdraw = async (req, res, next) => {
         const { error } = withdrawValidation(req.body);
         if (error) return next(new ErrorHandler(error.details[0].message, 400));
 
-        const { amount, upi_id } = req.body;
+        const { amount, upi_id: bodyUpiId } = req.body;
         const { id, currency_code } = req.user;
-        // Ensure user exists (optional, if `req.user` is always present)
+
+        // Ensure user exists
         const user = await User.findById(id);
         if (!user) return next(new ErrorHandler("User not found", 404));
-        // Create & save payment
+
+        // Use UPI ID from request body, or fallback to user's stored UPI ID
+        const upi_id = bodyUpiId || user.upiId;
+        if (!upi_id) return next(new ErrorHandler("UPI ID is required", 400));
 
         // Check if user has enough balance
         if (user.balance < amount) return next(new ErrorHandler("Insufficient balance", 400));
 
-        const payment = await Payment.create({ userId: id, amount, upi_id, currency_code, payment_type: "withdrawal" });
+        // Create & save payment
+        const payment = await Payment.create({
+            userId: id,
+            amount,
+            upi_id,
+            currency_code,
+            payment_type: "withdrawal"
+        });
 
-        res.status(201).json({ success: true, message: "Payment successful", payment });
         // Update user balance
         user.balance -= amount;
         await user.save();
+
+        res.status(201).json({ success: true, message: "Withdrawal successful", payment });
     } catch (err) {
         next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
-}
+};
+
 
 // -------------------------------------------- 14 //get All Deposit and ststus wise --------------------------------------------
+
 exports.fetchDeposits = async (req, res, next) => {
     try {
         const { status } = req.params;
@@ -118,8 +132,6 @@ exports.fetchWithdrawals = async (req, res, next) => {
         next(new ErrorHandler(`Server Error: ${err.message}`, 500));
     }
 }
-
-
 
 
 
@@ -188,7 +200,6 @@ exports.getWithdrawals = async (req, res, next) => {
 
 // -------------------------------------------- 18 // set Approve --------------------------------------------
 
-
 exports.setApprovePayment = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -206,6 +217,7 @@ exports.setApprovePayment = async (req, res, next) => {
 };
 
 // -------------------------------------------- 19 // set Reject --------------------------------------------
+
 exports.setRejectPayment = async (req, res, next) => {
     try {
         const { id } = req.params;

@@ -11,7 +11,7 @@ const ErrorHandler = require("../utils/errorHandler"); // Import the custom erro
 
 exports.register = async (req, res, next) => {
     try {
-        const { name, email, phone, password } = req.body;
+        const { name, email, phone, upiId, password } = req.body;
 
         // Validate input
         const { error } = registerValidation(req.body);
@@ -26,7 +26,7 @@ exports.register = async (req, res, next) => {
 
         // Hash password & create user
         const hashedPassword = await userProtect.doHash(password);
-        const user = await User.create({ name, email, phone, password: hashedPassword, role });
+        const user = await User.create({ name, email, phone,upiId, password: hashedPassword, role });
 
         res.status(201).json({ success: true, message: "User registered successfully", data: user });
 

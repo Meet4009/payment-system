@@ -7,6 +7,7 @@ const registerValidation = (data) => {
         email: Joi.string().min(6).required().email(),
         password: Joi.string().min(4).required(),
         phone: Joi.string().length(10).pattern(/^[0-9]+$/).required(),
+        upiId: Joi.string().min(8)
     });
     return schema.validate(data);
 };
@@ -53,7 +54,7 @@ const depositValidation = (data) => {
 const withdrawValidation = (data) => {
     const schema = Joi.object({
         amount: Joi.number().positive().required(),
-        upi_id: Joi.string().min(8).required(),
+        upi_id: Joi.string().min(8)
     });
     return schema.validate(data);
 };
