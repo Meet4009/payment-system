@@ -1,10 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
+const userServices = require('../services/userServices');
 const { authMiddleware, authorizeRoles } = require('../middleware/auth');
 
+// page Render
+
+router.get('/', userServices.renderHome);
+router.get('/register', userServices.renderRegister);
+router.get('/login', userServices.renderLogin);
+
+// Import routes
+
 // ✅ User Authentication Routes
-router.post('/register', userController.register);   
+router.post('/register', userController.register);
 router.post('/login', userController.login);
 router.get('/logout', authMiddleware, userController.logout);
 
@@ -13,7 +22,7 @@ router
     .route('/profile')
     .get(authMiddleware, userController.getProfile)
     .put(authMiddleware, userController.updateProfile)
-    .delete(authMiddleware, userController.deleteProfile); 
+    .delete(authMiddleware, userController.deleteProfile);
 
 router.put('/update-password', authMiddleware, userController.updatePassword);
 

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> <%= title %></title>
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+
+    <div class="iphone-14-pro-max-mockup">
+        <div class="screen">
+            <div class="status-bar">
+                <div class="notch">
+                    <div class="speaker"></div>
+                    <div class="light"></div>
+                    <div class="camera-dot"></div>
+                </div>
+                <div class=" time">
+                    <span id="timeNow"></span>
+                </div>
+                <div class="icon">
+                    <!-- iphone network icon -->
+                    <i class="fa-solid fa-signal"></i>
+                    <!-- iphone wifi icon -->
+                    <i class="fa-solid fa-wifi"></i>
+                    <!-- iphone battery icon -->
+                    <i class="fa-solid fa-battery-full fa-lg"></i>
+                </div>
+            </div>
+            <div class="content">
+                <div class="heading">
+                    <h1 class="title"> Get Started Now</h1>
+                    <p class="sub-title">create an account log in to explore <br> obout our app</p>
+                </div>
+                <div class="register-form">
+                    <form action="">
+                        <div class="input-group">
+                            <label for="name">Name</label><br>
+                            <input type="text" name="name" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="email">Email</label><br>
+                            <input type="email" name="email" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="nummber">Phone No</label><br>
+                            <input type="number" name="nummber" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="upiId">UPI ID</label><br>
+                            <input type="text" name="upiId" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="password">Password</label><br>
+                            <input type="password" name="password"  required>
+                        </div>
+                        <button type="submit">Register</button>
+                    </form>
+                    <div class="login-link">
+                        Already have an account? <a href="/api/v1/user/login">Login</a>
+
+                </div>
+            </div>
+            <div class="navagation"></div>
+        </div>
+    </div>
+
+    <script src="/js/script.js"></script>
+
+
+
+
+</body>
+
+</html>
