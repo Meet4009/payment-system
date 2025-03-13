@@ -1,37 +1,45 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
-// Import routes
-const paymentController = require('../controllers/paymentController');
-const { authMiddleware, authorizeRoles } = require('../middleware/auth');
-//api/v1/payment
+// Import controllers & middleware
+const paymentController = require("../controllers/paymentController");
+const { authMiddleware, authorizeRoles } = require("../middleware/auth");
 
-// ------------ DEPOSIT ------------ //
+// Apply authMiddleware to all routes
+router.use(authMiddleware);
 
-// ---- USER ROUTES ---- //
-router.post('/deposit', authMiddleware, paymentController.deposit);
-router.get('/deposit/:status?', authMiddleware, paymentController.fetchDeposits);
+// ------------ DEPOSIT ROUTES ------------ //
 
-// ---- ADMIN ROUTES ---- //
+// User deposit routes
+router.route("/deposit")
+    .post(paymentController.deposit)
+    .get(paymentController.fetchDeposits);
 
-router.get('/:status?/deposits', authMiddleware, authorizeRoles("admin"), paymentController.getDeposits);
-router.get('/deposit/approve/:id', authMiddleware, authorizeRoles("admin"), paymentController.setApprovePayment);
-router.get('/deposit/reject/:id', authMiddleware, authorizeRoles("admin"), paymentController.setRejectPayment);
+router.route("/:status?/deposits")
+    .get(authorizeRoles("admin"), paymentController.getDeposits);
 
-// ------------ WITHDRAW ------------ //
+// Admin deposit approval/rejection routes
+router.route("/deposit/approve/:id")
+    .get(authorizeRoles("admin"), paymentController.setApprovePayment);
 
-// ---- USER ROUTES ---- //
-router.post('/withdraw', authMiddleware, paymentController.withdraw);
-router.get('/withdraw/:status?', authMiddleware, paymentController.fetchWithdrawals);
+router.route("/deposit/reject/:id")
+    .get(authorizeRoles("admin"), paymentController.setRejectPayment);
 
-// ---- ADMIN ROUTES ---- //
+// ------------ WITHDRAWAL ROUTES ------------ //
 
-router.get('/:status?/withdrawals', authMiddleware, authorizeRoles("admin"), paymentController.getWithdrawals);
-router.get('/withdrawal/approve/:id', authMiddleware, authorizeRoles("admin"), paymentController.setApprovePayment);
-router.get('/withdrawal/reject/:id', authMiddleware, authorizeRoles("admin"), paymentController.setRejectPayment);
+// User withdrawal routes
+router.route("/withdraw")
+    .post(paymentController.withdraw)
+    .get(paymentController.fetchWithdrawals);
 
-// ------------ TRANSFER ------------ //
+router.route("/:status?/withdrawals")
+    .get(authorizeRoles("admin"), paymentController.getWithdrawals);
 
+// Admin withdrawal approval/rejection routes
+router.route("/withdrawal/approve/:id")
+    .get(authorizeRoles("admin"), paymentController.setApprovePayment);
 
+router.route("/withdrawal/reject/:id")
+    .get(authorizeRoles("admin"), paymentController.setRejectPayment);
 
 module.exports = router;
