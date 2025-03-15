@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> <%= title %></title>
+    <title>
+        <%= title %>
+    </title>
 
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
@@ -49,9 +51,11 @@
                     <form action="">
                         <div class="profile-image">
                             <!-- // profile image -->
-                             <img src="/image/profile-image.png" alt="Profile Image" class="profile">
-                             <img src="/image/upload-image.png" alt="upload-image" class="upload">
-                             <!-- // profile image upload button -->
+                            <img src="/image/profile-image.png" alt="Profile Image" class="profile"
+                                onclick="uploadProfileImage()">
+                            <img src="/image/upload-image.png" alt="upload-image" class="upload"
+                                onclick="uploadProfileImage()">
+                            <input type="file" id="changeProfile" style="display: none;">
 
 
                         </div>
@@ -61,7 +65,7 @@
                         </div>
                         <div class="input-group">
                             <!-- <label for="email">Email</label><br> -->
-                            <input type="email" name="email" placeholder="Email"required>
+                            <input type="email" name="email" placeholder="Email" required>
                         </div>
                         <div class="input-group">
                             <!-- <label for="nummber">Phone No</label><br> -->
@@ -80,13 +84,13 @@
                     <div class="login-link">
                         Already have an account? <a href="/api/v1/user/login">Login</a>
 
+                    </div>
                 </div>
+                <div class="navagation"></div>
             </div>
-            <div class="navagation"></div>
         </div>
-    </div>
 
-    <script src="/js/script.js"></script>
+        <script src="/js/script.js"></script>
 
 
 

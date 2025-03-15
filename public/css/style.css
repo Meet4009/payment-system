@@ -343,29 +343,29 @@ input:focus {
 }
 
 .profile-image .profile {
+    /* position: absolute; */
     width: 100px;
     height: 100px;
     border-radius: 50%;
     padding: 2px;
     border: 2px solid #c6ed8a;
+    opacity: 1;
 }
 
 .profile-image .upload {
-    display: none;
     position: absolute;
     width: 100px;
     height: 100px;
     border-radius: 50%;
     padding: 2px;
     border: 2px solid #c6ed8a;
-    transition: ALL 0.5S;
+    transition: all 0.5s;
+    opacity: 0;
 }
 
-.profile:hover + .upload {
-    display: block;
+.profile-image:hover .upload {
+    opacity: 1;
 }
-
-
-.profile:hover {
-    filter:brightness(50%);
+.profile-image:hover .profile{
+    filter: brightness(70%);
 }

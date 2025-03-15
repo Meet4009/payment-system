@@ -6,8 +6,9 @@ const updateTime = () => {
     const minutes = now.getMinutes();
     const minute = minutes < 10 ? `0${minutes}` : `${minutes}`;
     const ampm = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours - 12;
-    hours12 < 10 ? timeNow.textContent = `0${hours12}:${minute}` : timeNow.textContent = `${hours12}:${minutes}`;
+    const hours12 = hours;
+    let hours12Hour = hours12 < 12 ? hours12 + 12 : hours
+    hours12Hour < 10 ? timeNow.textContent = `0${hours12Hour}:${minute}` : timeNow.textContent = `${hours12Hour}:${minutes}`;
 
     ;
 }
@@ -41,3 +42,18 @@ emailButton.addEventListener('click', () => {
     toggleLogin(emailButton, phoneButton, emailInput, phoneInput);
 });
 
+// password visibility toggle
+
+const passwordToggle = document.querySelector('.passwordToggle');
+const passwordInput = document.getElementById('password');
+
+passwordToggle.addEventListener('click', () => {
+    passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+});
+
+// profile image upload
+
+function uploadProfileImage() {
+    const fileupload = document.getElementById('changeProfile');
+    fileupload.click();
+}
