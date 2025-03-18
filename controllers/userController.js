@@ -8,12 +8,11 @@ const ErrorHandler = require("../utils/errorHandler"); // Import the custom erro
 //////////////////////////////////////////// USER SIDE ////////////////////////////////////////////
 
 // -------------------------------------------- 1 // Register a new user --------------------------------------------
-
 exports.register = async (req, res, next) => {
     try {
         const { name, email, phone, upiId, password } = req.body;
 
-        // Validate input
+        // Validate input (exclude profileImage from validation)
         const { error } = registerValidation(req.body);
         if (error) return next(new ErrorHandler(error.details[0].message, 400));
 
@@ -26,9 +25,15 @@ exports.register = async (req, res, next) => {
 
         // Hash password & create user
         const hashedPassword = await userProtect.doHash(password);
-        const user = await User.create({ name, email, phone,upiId, password: hashedPassword, role });
+        const profileImage = req.file ? req.file.filename : "default.jpg"; // Handle profileImage upload
 
-        res.status(201).json({ success: true, message: "User registered successfully", data: user });
+        const user = await User.create({
+            name, email, phone, upiId,
+            password: hashedPassword,
+            role, profileImage
+        });
+
+        res.status(200).json({ success: true, message: "User registered successfully", data: user });
 
     } catch (err) {
         next(new ErrorHandler(`Server Error: ${err.message}`, 500));

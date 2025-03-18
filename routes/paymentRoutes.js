@@ -11,7 +11,7 @@ router.use(authMiddleware);
 // ------------ DEPOSIT ROUTES ------------ //
 
 // User deposit routes
-router.route("/deposit")
+router.route("/deposit/:status?")
     .post(paymentController.deposit)
     .get(paymentController.fetchDeposits);
 
@@ -28,7 +28,7 @@ router.route("/deposit/reject/:id")
 // ------------ WITHDRAWAL ROUTES ------------ //
 
 // User withdrawal routes
-router.route("/withdraw")
+router.route("/withdraw/:status?")
     .post(paymentController.withdraw)
     .get(paymentController.fetchWithdrawals);
 

@@ -19,10 +19,13 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
-    upiId:{
+    upiId: {
         type: String,
         unique: true,
     },
+    profileImage: {
+        type: String
+    }, // Stores image filename
     balance: {
         type: Number,
         default: 0,

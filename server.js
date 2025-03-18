@@ -18,13 +18,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // static path
 
-app.use(express.static(path.join(__dirname, 'public')));
+// app.use(express.static(path.join(__dirname, 'public')));
 
 // Set HBS as the view engine
-app.set("view engine", "ejs");
+// app.set("view engine", "ejs");
 
 // Set views directory
-app.set("views", path.join(__dirname, "views"));
+// app.set("views", path.join(__dirname, "views"));
 
 // MongoDB connection
 connectDB();

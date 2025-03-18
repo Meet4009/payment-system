@@ -1,16 +1,18 @@
-const Joi = require('joi');
+const Joi = require("joi");
 
-// Validate user registration input
+// Register Validation Function
 const registerValidation = (data) => {
     const schema = Joi.object({
-        name: Joi.string().min(4).required(),
-        email: Joi.string().min(6).required().email(),
-        password: Joi.string().min(4).required(),
+        name: Joi.string().min(3).max(255).required(),
+        email: Joi.string().email().required(),
         phone: Joi.string().length(10).pattern(/^[0-9]+$/).required(),
-        upiId: Joi.string().min(8)
+        upiId: Joi.string().required(),
+        password: Joi.string().min(4).max(255).required(),
+        // Do NOT include profileImage here
     });
     return schema.validate(data);
 };
+
 
 // Login Validation Function
 const loginValidation = (data) => {
